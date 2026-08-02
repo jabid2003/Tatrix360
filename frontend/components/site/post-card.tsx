@@ -14,13 +14,14 @@ function getReadTime(content?: string): string {
 export function PostCard({ post }: { post: Post }) {
   return (
     <article className="group card-hover flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
-      <Link href={`/${post.category?.slug}/${post.slug}`} className="relative aspect-[16/10] overflow-hidden">
+      <Link href={`/${post.category?.slug}/${post.slug}`} className="relative overflow-hidden bg-muted/30">
         {post.heroImage ? (
           <Image
             src={post.heroImage}
             alt={post.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            width={800}
+            height={500}
+            className="h-auto w-full transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 33vw"
           />
         ) : (
@@ -76,13 +77,14 @@ export function CompactCard({ post }: { post: Post }) {
       href={`/${post.category?.slug}/${post.slug}`}
       className="group flex items-start gap-3 py-3"
     >
-      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
+      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted/30">
         {post.heroImage ? (
           <Image
             src={post.heroImage}
             alt=""
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-110"
+            width={64}
+            height={64}
+            className="h-full w-full transition-transform duration-300 group-hover:scale-110"
             sizes="64px"
           />
         ) : (

@@ -35,14 +35,15 @@ export default async function HomePage() {
                 href={`/${hero.category?.slug}/${hero.slug}`}
                 className="group relative col-span-1 flex flex-col overflow-hidden rounded-3xl border border-border bg-card lg:col-span-3 lg:row-span-2"
               >
-                <div className="relative aspect-[16/10] overflow-hidden lg:aspect-[16/12]">
+                <div className="relative overflow-hidden bg-muted/30">
                   {hero.heroImage ? (
                     <Image
                       src={hero.heroImage}
                       alt={hero.title}
-                      fill
+                      width={1200}
+                      height={800}
                       priority
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="h-auto w-full transition-transform duration-700 group-hover:scale-105"
                       sizes="(max-width: 1024px) 100vw, 60vw"
                     />
                   ) : (
@@ -80,13 +81,14 @@ export default async function HomePage() {
                   href={`/${post.category?.slug}/${post.slug}`}
                   className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5 lg:col-span-2"
                 >
-                  <div className="relative aspect-[16/9] overflow-hidden rounded-xl">
+                  <div className="relative overflow-hidden rounded-xl bg-muted/30">
                     {post.heroImage ? (
                       <Image
                         src={post.heroImage}
                         alt={post.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        width={800}
+                        height={500}
+                        className="h-auto w-full transition-transform duration-500 group-hover:scale-105"
                         sizes="(max-width: 1024px) 100vw, 40vw"
                       />
                     ) : (

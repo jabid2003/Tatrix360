@@ -68,7 +68,7 @@ export default async function ArticlePage({
       />
 
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+      <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground animate-in-up stagger-1">
         <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
         <span>/</span>
         <Link href={`/category/${post.category?.slug}`} className="transition-colors hover:text-foreground">
@@ -81,22 +81,22 @@ export default async function ArticlePage({
         {post.category && (
           <Link
             href={`/category/${post.category.slug}`}
-            className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
+            className="inline-block animate-in-up stagger-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
           >
             {post.category.name}
           </Link>
         )}
-        <h1 className="mt-4 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl lg:text-balance">
+        <h1 className="mt-4 animate-in-up stagger-2 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl lg:text-balance">
           {post.title}
         </h1>
         {post.subtitle && (
-          <p className="mt-4 text-lg text-muted-foreground lg:text-xl lg:text-pretty">
+          <p className="mt-4 animate-in-up stagger-3 text-lg text-muted-foreground lg:text-xl lg:text-pretty">
             {post.subtitle}
           </p>
         )}
 
         {/* Author + meta */}
-        <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-border py-4">
+        <div className="mt-6 flex flex-wrap animate-in-up stagger-4 items-center gap-4 border-y border-border py-4">
           {post.author && (
             <div className="flex items-center gap-3">
               {post.author.avatar && (
@@ -126,13 +126,14 @@ export default async function ArticlePage({
 
       {/* Hero image */}
       {post.heroImage && (
-        <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-3xl">
+        <div className="mx-auto mt-8 max-w-4xl animate-in-up stagger-4 overflow-hidden rounded-3xl bg-muted/30 p-3 sm:p-4">
           <Image
             src={post.heroImage}
             alt={post.title}
             width={1200}
-            height={675}
-            className="aspect-[16/9] w-full object-cover"
+            height={800}
+            className="h-auto w-full rounded-2xl"
+            sizes="(max-width: 768px) 100vw, 56rem"
             priority
           />
         </div>
@@ -140,7 +141,7 @@ export default async function ArticlePage({
 
       {/* Article body */}
       {post.content && (
-        <div className="prose-article mx-auto mt-10 max-w-3xl text-lg leading-relaxed">
+        <div className="prose-article mx-auto mt-10 max-w-3xl animate-in-up stagger-5 text-lg leading-relaxed">
           {post.content.split('\n').map((line, i) => {
             if (line.startsWith('## '))
               return (
