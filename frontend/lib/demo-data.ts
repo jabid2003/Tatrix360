@@ -92,3 +92,8 @@
 //     content: 'Stop paying $36/year for a password manager. Here\'s how to self-host one in an afternoon.\n\n## Vaultwarden\n\nIt\'s a lightweight, Rust implementation of the Bitwarden server. Runs happily on a Raspberry Pi.\n\n## Setup\n\nDocker makes this trivial. One container, one volume, a reverse proxy for HTTPS, and you\'re done.',
 //   },
 // ];
+export const demoPosts = [];
+export const demoCategories = [];
+export const demoAuthors = [];
+export const demoTags = [];
+export const demoMenu = [];
