@@ -1,0 +1,12 @@
+{
+  "name": "tatrix360",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite serve"
+  },
+  "dependencies": {
+    "vite": "^4.0.3"
+  }
+}

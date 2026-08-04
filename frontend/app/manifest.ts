@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: '360° updates on mobiles, AI, and gadgets.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0a0f1c',
+    background_color: '#ffffff',
     theme_color: '#0ea5e9',
     icons: [
       {

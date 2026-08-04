@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getPosts, getMenu } from '@/lib/strapi';
+import { getPostBySlug, getPosts } from '@/lib/data';
 import { formatDate } from '@/lib/utils';
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { CompactCard } from '@/components/site/post-card';

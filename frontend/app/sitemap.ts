@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
-import { getPosts, getCategories, SITE_URL } from '@/lib/strapi';
+import { getPosts, getCategories } from '@/lib/data';
+import { SITE_URL } from '@/lib/supabase';
 
 export const revalidate = 3600;
 

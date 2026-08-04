@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getPosts, getCategories } from '@/lib/strapi';
+import { getPosts, getCategories } from '@/lib/data';
 import { PostCard } from '@/components/site/post-card';
 
 export const revalidate = 60;

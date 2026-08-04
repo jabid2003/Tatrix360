@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { ThemeProvider } from '@/components/site/theme-provider';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
 import { RouteTransition } from '@/components/site/route-transition';
 import { NavigationEvents } from '@/components/site/navigation-events';
-import { getMenu } from '@/lib/strapi';
+import { getMenu } from '@/lib/data';
 
 export const metadata: Metadata = {
   title: { default: 'Tatrix360 — Tech, decoded.', template: '%s — Tatrix360' },
@@ -26,7 +25,7 @@ export default async function RootLayout({
   const menu = await getMenu();
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -36,14 +35,12 @@ export default async function RootLayout({
         />
       </head>
       <body className="flex min-h-screen flex-col font-sans">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <NavigationEvents />
-          <SiteHeader menu={menu} />
-          <main className="flex-1">
-            <RouteTransition>{children}</RouteTransition>
-          </main>
-          <SiteFooter />
-        </ThemeProvider>
+        <NavigationEvents />
+        <SiteHeader menu={menu} />
+        <main className="flex-1">
+          <RouteTransition>{children}</RouteTransition>
+        </main>
+        <SiteFooter />
       </body>
     </html>
   );

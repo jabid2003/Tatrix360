@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { SITE_URL } from '@/lib/strapi';
+import { SITE_URL } from '@/lib/supabase';
 
 export function Analytics() {
   const provider = process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER;

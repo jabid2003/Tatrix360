@@ -3,7 +3,7 @@
 import { Twitter, Facebook, MessageCircle, Send, Link2, Check } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { SITE_URL } from '@/lib/strapi';
+import { SITE_URL } from '@/lib/supabase';
 
 export function ShareBar({
   title,

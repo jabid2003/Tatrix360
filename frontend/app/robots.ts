@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL } from '@/lib/strapi';
+import { SITE_URL } from '@/lib/supabase';
 
 export default function robots(): MetadataRoute.Robots {
   return {

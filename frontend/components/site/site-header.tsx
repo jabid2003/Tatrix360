@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Search, Menu, X, Zap } from 'lucide-react';
 import type { MenuItem } from '@/lib/types';
-import { ThemeToggle } from '@/components/site/theme-toggle';
 
 export function SiteHeader({ menu }: { menu: MenuItem[] }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +43,6 @@ export function SiteHeader({ menu }: { menu: MenuItem[] }) {
             <span className="hidden lg:inline">Search</span>
             <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline">⌘K</kbd>
           </Link>
-          <ThemeToggle />
           <button
             onClick={() => setOpen(!open)}
             className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"

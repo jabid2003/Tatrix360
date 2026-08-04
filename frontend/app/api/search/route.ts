@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { searchPosts } from '@/lib/strapi';
+import { searchPosts } from '@/lib/data';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
