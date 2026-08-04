@@ -1,5 +1,17 @@
 {
-  "/page": "app/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/newsletter/route": "app/api/newsletter/route.js",
+  "/api/contact/route": "app/api/contact/route.js",
+  "/contact/page": "app/contact/page.js",
+  "/api/search/route": "app/api/search/route.js",
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
+  "/search/page": "app/search/page.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/category/[slug]/page": "app/category/[slug]/page.js",
+  "/about/page": "app/about/page.js",
+  "/subscribe/page": "app/subscribe/page.js",
   "/[category]/[slug]/page": "app/[category]/[slug]/page.js",
-  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js"
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
+  "/page": "app/page.js"
 }
