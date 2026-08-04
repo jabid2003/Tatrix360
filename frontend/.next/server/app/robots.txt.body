@@ -1,6 +1,0 @@
-User-Agent: *
-Allow: /
-Disallow: /api/
-
-Host: https://tatrix360.com
-Sitemap: https://tatrix360.com/sitemap.xml
