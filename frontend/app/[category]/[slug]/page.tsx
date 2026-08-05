@@ -8,6 +8,7 @@ import { getPostBySlug, getPosts } from '@/lib/data';
 import { formatDate } from '@/lib/utils';
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { CompactCard } from '@/components/site/post-card';
+import { PostViewTracker } from '@/components/PostViewTracker';
 import { Eye, Clock, ArrowLeft, Share2 } from 'lucide-react';
 
 // export const revalidate = 60;
@@ -56,6 +57,8 @@ export default async function ArticlePage({
 
   return (
     <article className="container-page py-6 sm:py-10">
+      <PostViewTracker slug={post.slug} />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
