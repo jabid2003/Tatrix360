@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { supabase } from '@/lib/supabase';
 import type { Post, Category, Author, Tag, MenuItem } from '@/lib/types';
 

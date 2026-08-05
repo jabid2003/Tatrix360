@@ -1,3 +1,7 @@
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { getPosts, getTrendingPosts, getCategories } from '@/lib/data';
@@ -7,7 +11,7 @@ import { InstallButton } from '@/components/site/install-button';
 import { formatDate } from '@/lib/utils';
 import { Clock, Eye, ArrowRight, Flame, Zap, Rss, Mail, Search } from 'lucide-react';
 
-export const revalidate = 60;
+// export const revalidate = 60;
 
 export default async function HomePage() {
   const [featured, latest, trending, categories] = await Promise.all([

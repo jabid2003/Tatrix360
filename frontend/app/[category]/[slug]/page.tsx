@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -7,7 +10,7 @@ import { NewsletterBox } from '@/components/site/newsletter-box';
 import { CompactCard } from '@/components/site/post-card';
 import { Eye, Clock, ArrowLeft, Share2 } from 'lucide-react';
 
-export const revalidate = 60;
+// export const revalidate = 60;
 
 export async function generateStaticParams() {
   const posts = await getPosts({ pageSize: 50 });
