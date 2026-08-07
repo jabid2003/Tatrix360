@@ -20,10 +20,23 @@ const config: Config = {
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-      },
+  sans: [
+    'var(--font-inter)',
+    'ui-sans-serif',
+    'system-ui',
+    'sans-serif',
+  ],
+  serif: [
+    'var(--font-playfair)',
+    'Georgia',
+    'serif',
+  ],
+  mono: [
+    'var(--font-mono)',
+    'ui-monospace',
+    'monospace',
+  ],
+},
       container: { screens: { '2xl': '1280px' }, padding: '1rem' },
       borderRadius: {
         '2xl': '1rem',
