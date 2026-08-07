@@ -197,11 +197,10 @@ export default async function HomePage() {
             </div>
 
             <Link
-              href="/search"
-              className="flex items-center gap-1 text-sm font-medium text-primary transition-opacity hover:opacity-80"
+              href="/latest"
+              className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
             >
               View all
-              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
