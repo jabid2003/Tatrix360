@@ -3,27 +3,31 @@ export const revalidate = 0;
 
 import Image from 'next/image';
 import Link from 'next/link';
+
 import {
   getPosts,
   getTrendingPosts,
   getCategories,
 } from '@/lib/data';
+
 import {
   PostCard,
   TrendingCard,
 } from '@/components/site/post-card';
+
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { InstallButton } from '@/components/site/install-button';
 import { formatDate } from '@/lib/utils';
+
 import {
-  Clock,
-  Eye,
-  ArrowRight,
   Flame,
   Zap,
   Mail,
   Search,
 } from 'lucide-react';
+
+// Read-time, views and unused icon temporarily disabled.
+// import { Clock, Eye, ArrowRight } from 'lucide-react';
 
 export default async function HomePage() {
   const [featured, latest, trending, categories] =
@@ -97,15 +101,23 @@ export default async function HomePage() {
 
                 <span>{formatDate(hero.publishedAt)}</span>
 
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" />
-                  5 min
-                </span>
+                {/*
+                  Read-time temporarily hidden.
 
-                <span className="flex items-center gap-1">
-                  <Eye className="h-3.5 w-3.5" />
-                  {hero.views ?? 0}
-                </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    5 min
+                  </span>
+                */}
+
+                {/*
+                  Views temporarily hidden.
+
+                  <span className="flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5" />
+                    {hero.views ?? 0}
+                  </span>
+                */}
               </div>
             </div>
           </Link>
@@ -152,7 +164,10 @@ export default async function HomePage() {
             className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Zap className="h-4 w-4" fill="currentColor" />
+              <Zap
+                className="h-4 w-4"
+                fill="currentColor"
+              />
             </div>
 
             <div>
@@ -207,7 +222,10 @@ export default async function HomePage() {
           {/* Two cards on mobile and desktop */}
           <div className="grid grid-cols-2 gap-3 sm:gap-6">
             {rest.slice(0, 4).map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard
+                key={post.id}
+                post={post}
+              />
             ))}
           </div>
         </div>

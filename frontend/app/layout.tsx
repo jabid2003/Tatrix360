@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
 import { RouteTransition } from '@/components/site/route-transition';
 import { NavigationEvents } from '@/components/site/navigation-events';
 import { Providers } from './providers';
 import { getMenu } from '@/lib/data';
+
 import {
   inter,
   playfair,
@@ -18,9 +21,12 @@ export const metadata: Metadata = {
     default: 'Tatrix360 — Tech, decoded.',
     template: '%s — Tatrix360',
   },
+
   description:
     'Sharp reporting on AI, gadgets, and the platforms shaping our digital lives.',
+
   metadataBase: new URL('https://tatrix360.com'),
+
   openGraph: {
     title: 'Tatrix360',
     description: 'Tech, decoded.',
@@ -51,6 +57,8 @@ export default async function RootLayout({
 
           <SiteFooter />
         </Providers>
+
+        <SpeedInsights />
       </body>
     </html>
   );

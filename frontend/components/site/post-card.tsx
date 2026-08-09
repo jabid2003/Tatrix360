@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Post } from '@/lib/types';
-import { formatDate, formatViews } from '@/lib/utils';
-import { Eye, Clock } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 
+// Views and read-time temporarily disabled.
+// import { formatDate, formatViews } from '@/lib/utils';
+// import { Eye, Clock } from 'lucide-react';
+
+/*
 function getReadTime(content?: string): string {
   if (!content) return '5 min';
 
@@ -12,6 +16,7 @@ function getReadTime(content?: string): string {
 
   return `${minutes} min`;
 }
+*/
 
 export function PostCard({ post }: { post: Post }) {
   return (
@@ -77,19 +82,27 @@ export function PostCard({ post }: { post: Post }) {
 
           <span>{formatDate(post.publishedAt)}</span>
 
-          <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40" />
+          {/*
+            Read-time temporarily hidden.
 
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {getReadTime(post.content)}
-          </span>
+            <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40" />
 
-          <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40" />
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {getReadTime(post.content)}
+            </span>
+          */}
 
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {formatViews(post.views)}
-          </span>
+          {/*
+            Views temporarily hidden.
+
+            <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40" />
+
+            <span className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {formatViews(post.views)}
+            </span>
+          */}
         </div>
       </div>
     </article>
@@ -122,14 +135,17 @@ export function CompactCard({ post }: { post: Post }) {
         </h4>
 
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {formatViews(post.views)}
-          </span>
+          {/*
+            Views temporarily hidden.
+
+            <span className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {formatViews(post.views)}
+            </span>
+          */}
 
           {post.category && (
             <>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
               <span className="truncate">{post.category.name}</span>
             </>
           )}
@@ -163,12 +179,16 @@ export function TrendingCard({
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           <span>{formatDate(post.publishedAt)}</span>
 
-          <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+          {/*
+            Views temporarily hidden.
 
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {formatViews(post.views)}
-          </span>
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+
+            <span className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {formatViews(post.views)}
+            </span>
+          */}
         </div>
       </div>
     </Link>
