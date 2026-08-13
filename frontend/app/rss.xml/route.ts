@@ -24,7 +24,7 @@ export async function GET() {
         return '';
       }
 
-      const postUrl = `https://tatrix360.com/${post.category.slug}/${post.slug}`;
+      const postUrl = `https://tatrix360.vercel.app${post.category.slug}/${post.slug}`;
 
       const title = escapeXml(post.title);
       const description = escapeXml(post.subtitle ?? '');
@@ -48,7 +48,7 @@ export async function GET() {
 <rss version="2.0">
   <channel>
     <title>Tatrix360</title>
-    <link>https://tatrix360.com</link>
+    <link>https://tatrix360.vercel.app</link>
     <description>
       Sharp reporting on AI, gadgets, and the platforms shaping our digital lives.
     </description>
