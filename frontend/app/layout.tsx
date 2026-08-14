@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   description:
     'Sharp reporting on AI, gadgets, and the platforms shaping our digital lives.',
 
-  metadataBase: new URL('https://tatrix360.com'),
+  metadataBase: new URL('https://tatrix360.vercel.app'),
 
   openGraph: {
     title: 'Tatrix360',
