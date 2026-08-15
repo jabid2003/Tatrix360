@@ -10,13 +10,9 @@ import { formatDate } from '@/lib/utils';
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { CompactCard } from '@/components/site/post-card';
 import { PostViewTracker } from '@/components/PostViewTracker';
+import ArticleActions from '@/components/article-actions';
 
 import { ArrowLeft } from 'lucide-react';
-
-// Views, read-time and share icon temporarily disabled.
-// import { Eye, Clock, ArrowLeft, Share2 } from 'lucide-react';
-
-// export const revalidate = 60;
 
 export async function generateStaticParams() {
   const posts = await getPosts({ pageSize: 50 });
@@ -34,7 +30,9 @@ export async function generateMetadata({
 }) {
   const post = await getPostBySlug(params.slug);
 
-  if (!post) return {};
+  if (!post) {
+    return {};
+  }
 
   return {
     title: post.seoTitle || post.title,
@@ -42,6 +40,8 @@ export async function generateMetadata({
     openGraph: {
       title: post.title,
       description: post.subtitle,
+      siteName: 'Tatrix360',
+      type: 'article',
       images: post.heroImage ? [{ url: post.heroImage }] : [],
     },
   };
@@ -57,7 +57,9 @@ export default async function ArticlePage({
     getPosts({ pageSize: 6 }),
   ]);
 
-  if (!post) notFound();
+  if (!post) {
+    notFound();
+  }
 
   const relatedPosts = related
     .filter(
@@ -69,9 +71,10 @@ export default async function ArticlePage({
 
   return (
     <article className="container-page py-6 sm:py-10">
-      {/* View tracking remains active for future use */}
+      {/* View tracking */}
       <PostViewTracker slug={post.slug} />
 
+      {/* Structured data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -131,7 +134,7 @@ export default async function ArticlePage({
           </p>
         )}
 
-        {/* Author + meta */}
+        {/* Author and article metadata */}
         <div className="mt-6 flex flex-wrap animate-in-up stagger-4 items-center gap-4 border-y border-border py-4">
           {post.author && (
             <div className="flex items-center gap-3">
@@ -161,25 +164,15 @@ export default async function ArticlePage({
 
           <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
             <span>{formatDate(post.publishedAt)}</span>
-
-            {/*
-              Read-time temporarily hidden.
-
-              <span className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                5 min read
-              </span>
-            */}
-
-            {/*
-              Views temporarily hidden.
-
-              <span className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
-                {post.views ?? 0}
-              </span>
-            */}
           </div>
+        </div>
+
+        {/* Share actions */}
+        <div className="mt-5 animate-in-up stagger-4">
+          <ArticleActions
+            title={post.title}
+            description={post.subtitle}
+          />
         </div>
       </div>
 
@@ -221,7 +214,9 @@ export default async function ArticlePage({
               );
             }
 
-            if (line.trim() === '') return null;
+            if (line.trim() === '') {
+              return null;
+            }
 
             return (
               <p key={i} className="mt-4">
@@ -257,7 +252,7 @@ export default async function ArticlePage({
         </Link>
       </div>
 
-      {/* Related */}
+      {/* Related stories */}
       {relatedPosts.length > 0 && (
         <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
           <h2 className="font-serif text-2xl font-bold tracking-tight">
