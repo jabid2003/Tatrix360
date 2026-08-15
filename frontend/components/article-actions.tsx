@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Check, Copy, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 type ArticleActionsProps = {
   title: string;
   description?: string;
+  imageUrl?: string;
 };
 
 export default function ArticleActions({
   title,
   description,
+  imageUrl,
 }: ArticleActionsProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -27,6 +29,7 @@ export default function ArticleActions({
   async function copyLink() {
     try {
       const url = window.location.href;
+
       await navigator.clipboard.writeText(url);
 
       setIsCopied(true);
@@ -40,14 +43,42 @@ export default function ArticleActions({
     }
   }
 
-  async function shareArticle() {
-    if (typeof navigator === 'undefined') {
-      return;
+  async function getImageFile() {
+    if (!imageUrl) {
+      return null;
     }
 
-    if (!navigator.share) {
+    try {
+      const response = await fetch(imageUrl);
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const blob = await response.blob();
+
+      const extension =
+        blob.type.split('/')[1] || 'jpg';
+
+      return new File(
+        [blob],
+        `tatrix360-${Date.now()}.${extension}`,
+        {
+          type: blob.type || 'image/jpeg',
+        }
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async function shareArticle() {
+    if (
+      typeof navigator === 'undefined' ||
+      typeof navigator.share !== 'function'
+    ) {
       toast.error(
-        'Sharing is not supported in this browser. Please use the copy button.'
+        'Image sharing is not supported in this browser.'
       );
       return;
     }
@@ -56,12 +87,23 @@ export default function ArticleActions({
       setIsSharing(true);
 
       const url = window.location.href;
+      const imageFile = await getImageFile();
 
-      await navigator.share({
+      const shareData: ShareData = {
         title: `${title} | Tatrix360`,
         text: getShareText(),
         url,
-      });
+      };
+
+      if (
+        imageFile &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [imageFile] })
+      ) {
+        shareData.files = [imageFile];
+      }
+
+      await navigator.share(shareData);
     } catch (error) {
       if (
         error instanceof DOMException &&
@@ -83,24 +125,38 @@ export default function ArticleActions({
           type="button"
           onClick={shareArticle}
           disabled={isSharing}
-          aria-label="Share this article"
+          aria-label="Share article with image"
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Share2 className="h-4 w-4" aria-hidden="true" />
-          <span>{isSharing ? 'Sharing…' : 'Share article'}</span>
+          <Share2
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
+
+          <span>
+            {isSharing ? 'Sharing…' : 'Share article'}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={copyLink}
-          aria-label={isCopied ? 'Link copied' : 'Copy article link'}
+          aria-label={
+            isCopied ? 'Link copied' : 'Copy article link'
+          }
           title={isCopied ? 'Link copied' : 'Copy article link'}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
           {isCopied ? (
-            <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
+            <Check
+              className="h-4 w-4 text-green-600"
+              aria-hidden="true"
+            />
           ) : (
-            <Copy className="h-4 w-4" aria-hidden="true" />
+            <Copy
+              className="h-4 w-4"
+              aria-hidden="true"
+            />
           )}
         </button>
       </div>
