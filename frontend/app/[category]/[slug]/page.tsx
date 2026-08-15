@@ -166,14 +166,6 @@ export default async function ArticlePage({
             <span>{formatDate(post.publishedAt)}</span>
           </div>
         </div>
-
-        {/* Share actions */}
-        <div className="mt-5 animate-in-up stagger-4">
-          <ArticleActions
-            title={post.title}
-            description={post.subtitle}
-          />
-        </div>
       </div>
 
       {/* Hero image */}
@@ -190,6 +182,14 @@ export default async function ArticlePage({
           />
         </div>
       )}
+
+      {/* Share and copy actions below image */}
+      <div className="mx-auto mt-4 flex max-w-4xl justify-end">
+        <ArticleActions
+          title={post.title}
+          description={post.subtitle}
+        />
+      </div>
 
       {/* Article body */}
       {post.content && (
