@@ -315,20 +315,20 @@ export default async function ArticlePage({
         </Link>
       </div>
 
-      {/* Related stories */}
-      {relatedPosts.length > 0 && (
-        <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
-          <h2 className="font-serif text-2xl font-bold tracking-tight">
-            Related stories
-          </h2>
+     {/* Related stories */}
+{relatedPosts.length > 0 && (
+  <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
+    <h2 className="font-serif text-2xl font-bold tracking-tight">
+      Related stories
+    </h2>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {relatedPosts.map((p) => (
-              <CompactCard key={p.id} post={p} />
-            ))}
-          </div>
-        </section>
-      )}
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6">
+      {relatedPosts.map((p) => (
+        <CompactCard key={p.id} post={p} />
+      ))}
+    </div>
+  </section>
+)}
 
       {/* Newsletter */}
       <div className="mx-auto mt-16 max-w-4xl">
