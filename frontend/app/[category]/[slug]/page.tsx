@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -27,22 +28,64 @@ export async function generateMetadata({
   params,
 }: {
   params: { category: string; slug: string };
-}) {
+}): Promise<Metadata> {
   const post = await getPostBySlug(params.slug);
 
   if (!post) {
     return {};
   }
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    'https://tatrix360.com';
+
+  const articleUrl = new URL(
+    `/${params.category}/${params.slug}`,
+    siteUrl
+  ).toString();
+
+  const description =
+    post.seoDescription ||
+    post.subtitle ||
+    `Read ${post.title} on Tatrix360.`;
+
+  const imageUrl = post.heroImage
+    ? new URL(post.heroImage, siteUrl).toString()
+    : undefined;
+
   return {
     title: post.seoTitle || post.title,
-    description: post.seoDescription || post.subtitle,
+    description,
+
+    alternates: {
+      canonical: articleUrl,
+    },
+
     openGraph: {
       title: post.title,
-      description: post.subtitle,
+      description,
+      url: articleUrl,
       siteName: 'Tatrix360',
       type: 'article',
-      images: post.heroImage ? [{ url: post.heroImage }] : [],
+      publishedTime: post.publishedAt,
+      authors: post.author?.name
+        ? [post.author.name]
+        : undefined,
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              alt: post.title,
+            },
+          ]
+        : undefined,
+    },
+
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
     },
   };
 }
@@ -69,6 +112,38 @@ export default async function ArticlePage({
     )
     .slice(0, 3);
 
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: post.title,
+    description:
+      post.seoDescription ||
+      post.subtitle ||
+      undefined,
+    datePublished: post.publishedAt,
+    dateModified: post.publishedAt,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${process.env.NEXT_PUBLIC_SITE_URL || 'https://tatrix360.com'}/${params.category}/${params.slug}`,
+    },
+    author: post.author
+      ? {
+          '@type': 'Person',
+          name: post.author.name,
+        }
+      : undefined,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Tatrix360',
+      url:
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        'https://tatrix360.com',
+    },
+    image: post.heroImage
+      ? [post.heroImage]
+      : undefined,
+  };
+
   return (
     <article className="container-page py-6 sm:py-10">
       {/* View tracking */}
@@ -78,19 +153,7 @@ export default async function ArticlePage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'NewsArticle',
-            headline: post.title,
-            datePublished: post.publishedAt,
-            author: post.author
-              ? {
-                  '@type': 'Person',
-                  name: post.author.name,
-                }
-              : undefined,
-            image: post.heroImage ? [post.heroImage] : undefined,
-          }),
+          __html: JSON.stringify(structuredData),
         }}
       />
 

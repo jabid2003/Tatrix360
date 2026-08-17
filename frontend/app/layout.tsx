@@ -16,7 +16,13 @@ import {
   jetbrainsMono,
 } from './fonts';
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'https://tatrix360.com';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+
   title: {
     default: 'Tatrix360 — Tech, decoded.',
     template: '%s — Tatrix360',
@@ -25,12 +31,39 @@ export const metadata: Metadata = {
   description:
     'Sharp reporting on AI, gadgets, and the platforms shaping our digital lives.',
 
-  metadataBase: new URL('https://tatrix360.vercel.app'),
+  applicationName: 'Tatrix360',
+
+  alternates: {
+    canonical: '/',
+  },
 
   openGraph: {
-    title: 'Tatrix360',
-    description: 'Tech, decoded.',
+    title: 'Tatrix360 — Tech, decoded.',
+    description:
+      'Sharp reporting on AI, gadgets, and the platforms shaping our digital lives.',
+    url: '/',
+    siteName: 'Tatrix360',
+    locale: 'en_US',
     type: 'website',
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tatrix360 — Tech, decoded.',
+    description:
+      'Sharp reporting on AI, gadgets, and the platforms shaping our digital lives.',
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
 };
 
