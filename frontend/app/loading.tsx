@@ -9,13 +9,13 @@ export default function Loading() {
   return (
     <div className="flex flex-col">
       <HeroSkeleton />
-      <div className="container-page grid grid-cols-1 gap-10 py-12 lg:grid-cols-3">
+      <div className="container-page grid grid-cols-2 gap-10 py-12 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="mb-6 flex items-center justify-between">
             <div className="h-7 w-40 animate-pulse rounded bg-muted" />
             <div className="h-5 w-20 animate-pulse rounded bg-muted" />
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <PostCardSkeleton key={i} />
             ))}

@@ -119,7 +119,7 @@ export default function SearchPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
@@ -157,7 +157,7 @@ export default function SearchPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {suggestions.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
