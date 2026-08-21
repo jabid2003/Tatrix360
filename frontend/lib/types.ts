@@ -12,6 +12,7 @@ export interface Category {
   name: string;
   slug: string;
   description?: string;
+  sortOrder?: number;
 }
 
 export interface Tag {

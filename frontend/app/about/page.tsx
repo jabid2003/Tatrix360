@@ -1,10 +1,25 @@
+import type { Metadata } from 'next';
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { Zap, Shield, PenTool } from 'lucide-react';
 
-export const metadata = {
-  title: 'About | Tatrix360',
+export const metadata: Metadata = {
+  // Plain string, not 'About | Tatrix360' — the root layout's
+  // title.template ('%s — Tatrix360') applies to plain string titles
+  // automatically, so spelling out the site name here risks it being
+  // appended twice ("About | Tatrix360 — Tatrix360"). Let the template
+  // do that job, same pattern as Contact/Search/Latest.
+  title: 'About',
   description:
     'Learn about Tatrix360, an independent publication covering AI, mobile platforms, gadgets, and practical technology guides.',
+  alternates: {
+    canonical: '/about',
+  },
+  openGraph: {
+    title: 'About — Tatrix360',
+    description:
+      'Learn about Tatrix360, an independent publication covering AI, mobile platforms, gadgets, and practical technology guides.',
+    url: '/about',
+  },
 };
 
 const values = [
@@ -52,7 +67,7 @@ export default function AboutPage() {
           Our values
         </h2>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {values.map(({ icon: Icon, title, text }) => (
             <article
               key={title}

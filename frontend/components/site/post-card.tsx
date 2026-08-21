@@ -18,53 +18,76 @@ function getReadTime(content?: string): string {
 }
 */
 
-function getPostHref(post: Post) {
-  return `/${post.category?.slug ?? 'uncategorized'}/${post.slug}`;
+// Returns null when the post has no category, rather than falling back to
+// a fake '/uncategorized/...' path. That fallback used to produce a
+// clickable card whose link always resolves to not-found, since
+// getPostByCategoryAndSlug treats a missing category as unroutable by
+// design (same rule the sitemap already follows). Callers below render a
+// non-interactive card instead of a dead link when this is null.
+function getPostHref(post: Post): string | null {
+  if (!post.category) return null;
+  return `/${post.category.slug}/${post.slug}`;
 }
 
 export function PostCard({ post }: { post: Post }) {
   const postHref = getPostHref(post);
 
-  return (
-    <article className="group card-hover flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
-      <Link
-        href={postHref}
-        aria-label={`Read: ${post.title}`}
-        className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-muted/30 sm:aspect-auto sm:h-52"
-      >
-        {post.heroImage ? (
-          <Image
-            src={post.heroImage}
-            alt={post.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
-          />
-        ) : (
-          <div
-            aria-hidden="true"
-            className="h-full w-full bg-muted"
-          />
-        )}
-
+  const media = (
+    <div
+      className={`relative block aspect-[4/3] min-h-0 overflow-hidden bg-muted/30 sm:aspect-auto sm:h-52 ${
+        postHref ? 'group' : ''
+      }`}
+    >
+      {post.heroImage ? (
+        <Image
+          src={post.heroImage}
+          alt={post.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
+        />
+      ) : (
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          className="h-full w-full bg-muted"
         />
+      )}
 
-        {post.category && (
-          <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-primary/90 px-2 py-1 text-[10px] font-semibold text-primary-foreground backdrop-blur-sm sm:left-3 sm:top-3 sm:px-3 sm:text-xs">
-            {post.category.name}
-          </span>
-        )}
-      </Link>
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
+
+      {post.category && (
+        <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-primary/90 px-2 py-1 text-[10px] font-semibold text-primary-foreground backdrop-blur-sm sm:left-3 sm:top-3 sm:px-3 sm:text-xs">
+          {post.category.name}
+        </span>
+      )}
+    </div>
+  );
+
+  return (
+    <article className="group card-hover flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+      {postHref ? (
+        <Link href={postHref} aria-label={`Read: ${post.title}`}>
+          {media}
+        </Link>
+      ) : (
+        media
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-5">
-        <Link href={postHref}>
-          <h3 className="line-clamp-2 break-words font-serif text-sm font-bold leading-snug tracking-tight transition-colors group-hover:text-primary sm:text-lg">
+        {postHref ? (
+          <Link href={postHref}>
+            <h3 className="line-clamp-2 break-words font-serif text-sm font-bold leading-snug tracking-tight transition-colors group-hover:text-primary sm:text-lg">
+              {post.title}
+            </h3>
+          </Link>
+        ) : (
+          <h3 className="line-clamp-2 break-words font-serif text-sm font-bold leading-snug tracking-tight sm:text-lg">
             {post.title}
           </h3>
-        </Link>
+        )}
 
         {post.subtitle && (
           <p className="mt-2 line-clamp-2 break-words text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">
@@ -110,12 +133,8 @@ export function PostCard({ post }: { post: Post }) {
 export function CompactCard({ post }: { post: Post }) {
   const postHref = getPostHref(post);
 
-  return (
-    <Link
-      href={postHref}
-      aria-label={`Read: ${post.title}`}
-      className="group flex min-w-0 items-start gap-3 py-3"
-    >
+  const content = (
+    <>
       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted/30">
         {post.heroImage ? (
           <Image
@@ -146,6 +165,24 @@ export function CompactCard({ post }: { post: Post }) {
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (!postHref) {
+    return (
+      <div className="flex min-w-0 items-start gap-3 py-3">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={postHref}
+      aria-label={`Read: ${post.title}`}
+      className="group flex min-w-0 items-start gap-3 py-3"
+    >
+      {content}
     </Link>
   );
 }
@@ -159,12 +196,8 @@ export function TrendingCard({
 }) {
   const postHref = getPostHref(post);
 
-  return (
-    <Link
-      href={postHref}
-      aria-label={`Read: ${post.title}`}
-      className="group flex min-w-0 items-start gap-4 py-3"
-    >
+  const content = (
+    <>
       <span
         aria-hidden="true"
         className="flex-shrink-0 font-serif text-2xl font-bold text-muted-foreground/30 transition-colors group-hover:text-primary"
@@ -183,6 +216,24 @@ export function TrendingCard({
           </span>
         </div>
       </div>
+    </>
+  );
+
+  if (!postHref) {
+    return (
+      <div className="flex min-w-0 items-start gap-4 py-3">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={postHref}
+      aria-label={`Read: ${post.title}`}
+      className="group flex min-w-0 items-start gap-4 py-3"
+    >
+      {content}
     </Link>
   );
 }
