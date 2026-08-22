@@ -33,7 +33,8 @@ export function SiteFooter() {
             <h4 className="text-sm font-semibold text-foreground">Sections</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li><Link href="/category/ai" className="transition-colors hover:text-primary">AI</Link></li>
-              <li><Link href="/category/android-ios" className="transition-colors hover:text-primary">Android & iOS</Link></li>
+              <li><Link href="/category/android" className="transition-colors hover:text-primary">Android</Link></li>
+              <li><Link href="/category/ios" className="transition-colors hover:text-primary">iOS</Link></li>
               <li><Link href="/category/gadgets" className="transition-colors hover:text-primary">Gadgets</Link></li>
               <li><Link href="/category/deals" className="transition-colors hover:text-primary">Deals</Link></li>
             </ul>
