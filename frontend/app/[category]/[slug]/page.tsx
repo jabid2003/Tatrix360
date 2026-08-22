@@ -4,9 +4,9 @@ export const revalidate = 0;
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
-import { getPostBySlug, getPosts } from '@/lib/data';
+import { getPostByCategoryAndSlug, getPosts } from '@/lib/data';
 import { formatDate } from '@/lib/utils';
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { CompactCard } from '@/components/site/post-card';
@@ -18,10 +18,16 @@ import { ArrowLeft } from 'lucide-react';
 export async function generateStaticParams() {
   const posts = await getPosts({ pageSize: 50 });
 
-  return posts.map((p) => ({
-    category: p.category?.slug || 'uncategorized',
-    slug: p.slug,
-  }));
+  // Only pre-render posts that actually have a category. A post with no
+  // category can never resolve successfully under any category segment
+  // (getPostByCategoryAndSlug always returns 'not-found' for it), so
+  // there's no valid path to generate for it here.
+  return posts
+    .filter((p) => !!p.category)
+    .map((p) => ({
+      category: p.category!.slug,
+      slug: p.slug,
+    }));
 }
 
 export async function generateMetadata({
@@ -29,18 +35,27 @@ export async function generateMetadata({
 }: {
   params: { category: string; slug: string };
 }): Promise<Metadata> {
-  const post = await getPostBySlug(params.slug);
+  const result = await getPostByCategoryAndSlug(params.category, params.slug);
 
-  if (!post) {
+  if (result.status === 'not-found') {
     return {};
   }
+
+  const post = result.post;
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     'https://tatrix360.com';
 
+  // Always build the canonical URL from the post's real category
+  // (post.category.slug), not params.category. If this request came in
+  // on a wrong-category URL, the page body will redirect — but metadata
+  // resolution and rendering are separate passes in Next.js, so this
+  // guarantees <link rel="canonical"> and og:url are correct regardless.
+  const canonicalCategory = post.category?.slug ?? params.category;
+
   const articleUrl = new URL(
-    `/${params.category}/${params.slug}`,
+    `/${canonicalCategory}/${params.slug}`,
     siteUrl
   ).toString();
 
@@ -95,21 +110,29 @@ export default async function ArticlePage({
 }: {
   params: { category: string; slug: string };
 }) {
-  const [post, related] = await Promise.all([
-    getPostBySlug(params.slug),
-    getPosts({ pageSize: 6 }),
-  ]);
+  const result = await getPostByCategoryAndSlug(params.category, params.slug);
 
-  if (!post) {
+  if (result.status === 'not-found') {
     notFound();
   }
 
+  if (result.status === 'wrong-category') {
+    // The post exists but was requested under the wrong category segment
+    // (this is the exact bug: /tech/some-slug resolving even though the
+    // post belongs to /ai/some-slug). Redirect to the canonical URL
+    // instead of rendering it or 404ing — the content is real, it's just
+    // at a different address.
+    redirect(`/${result.correctCategorySlug}/${params.slug}`);
+  }
+
+  const post = result.post;
+
+  const related = post.category
+    ? await getPosts({ categorySlug: post.category.slug, pageSize: 6 })
+    : [];
+
   const relatedPosts = related
-    .filter(
-      (p) =>
-        p.slug !== post.slug &&
-        p.category?.slug === post.category?.slug
-    )
+    .filter((p) => p.slug !== post.slug)
     .slice(0, 3);
 
   const structuredData = {
@@ -124,7 +147,7 @@ export default async function ArticlePage({
     dateModified: post.publishedAt,
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${process.env.NEXT_PUBLIC_SITE_URL || 'https://tatrix360.com'}/${params.category}/${params.slug}`,
+      '@id': `${process.env.NEXT_PUBLIC_SITE_URL || 'https://tatrix360.com'}/${post.category?.slug}/${params.slug}`,
     },
     author: post.author
       ? {
@@ -315,20 +338,20 @@ export default async function ArticlePage({
         </Link>
       </div>
 
-      {/* Related stories */}
-      {relatedPosts.length > 0 && (
-        <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
-          <h2 className="font-serif text-2xl font-bold tracking-tight">
-            Related stories
-          </h2>
+     {/* Related stories */}
+{relatedPosts.length > 0 && (
+  <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
+    <h2 className="font-serif text-2xl font-bold tracking-tight">
+      Related stories
+    </h2>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {relatedPosts.map((p) => (
-              <CompactCard key={p.id} post={p} />
-            ))}
-          </div>
-        </section>
-      )}
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6">
+      {relatedPosts.map((p) => (
+        <CompactCard key={p.id} post={p} />
+      ))}
+    </div>
+  </section>
+)}
 
       {/* Newsletter */}
       <div className="mx-auto mt-16 max-w-4xl">

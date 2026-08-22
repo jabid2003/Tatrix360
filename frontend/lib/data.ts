@@ -51,7 +51,13 @@ interface PostRow {
 // Mappers
 // ---------------------------------------------------------------------------
 function mapCategory(c: CategoryRow): Category {
-  return { id: c.id, name: c.name, slug: c.slug, description: c.description ?? undefined };
+  return {
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description ?? undefined,
+    sortOrder: c.sort_order,
+  };
 }
 function mapAuthor(a: AuthorRow): Author {
   return { id: a.id, name: a.name, slug: a.slug, bio: a.bio ?? undefined, avatar: a.avatar ?? undefined, role: a.role ?? undefined };
@@ -129,6 +135,62 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
   }
   if (!data) return null;
   return mapPost(data as unknown as PostRow);
+}
+
+// ---------------------------------------------------------------------------
+// Category-validated single post lookup
+// ---------------------------------------------------------------------------
+//
+// Fixes the routing bug where /any-category/some-slug would resolve to a
+// post regardless of its real category, because the old page-level code
+// only ever called getPostBySlug(slug) and ignored the category param.
+//
+// We deliberately do NOT try to filter at the Supabase query level with
+// something like .eq('categories.slug', category) — when `categories` is
+// pulled in via an embedded/joined select (`*, categories!fk (*)`), it is
+// an embedded resource, not a flattened column, and PostgREST/supabase-js
+// will not filter parent rows by it the way a SQL JOIN + WHERE would.
+// getPosts() above works around this correctly for *listing* posts by
+// doing a separate categories -> id lookup and filtering on category_id.
+//
+// For a single post, slugs are globally unique, so we just fetch by slug
+// (reusing getPostBySlug) and validate the category in JS afterward. This
+// also lets the caller distinguish "doesn't exist" (404) from "exists,
+// wrong category" (redirect to the canonical URL) — a nicer UX/SEO outcome
+// than collapsing both cases into a single 404.
+// ---------------------------------------------------------------------------
+
+export type PostLookupResult =
+  | { status: 'ok'; post: Post }
+  | { status: 'wrong-category'; post: Post; correctCategorySlug: string }
+  | { status: 'not-found' };
+
+export async function getPostByCategoryAndSlug(
+  category: string,
+  slug: string
+): Promise<PostLookupResult> {
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    return { status: 'not-found' };
+  }
+
+  // A post with no assigned category can never resolve under any category
+  // URL. This is what produced the /undefined/... bug previously — treat
+  // it as not-found rather than letting an "undefined" category through.
+  if (!post.category) {
+    return { status: 'not-found' };
+  }
+
+  if (post.category.slug !== category) {
+    return {
+      status: 'wrong-category',
+      post,
+      correctCategorySlug: post.category.slug,
+    };
+  }
+
+  return { status: 'ok', post };
 }
 
 export async function getTrendingPosts(limit = 5): Promise<Post[]> {

@@ -1,5 +1,19 @@
+import type { Metadata } from 'next';
 import { getPosts } from '@/lib/data';
 import { PostCard } from '@/components/site/post-card';
+
+export const metadata: Metadata = {
+  title: 'Latest',
+  description: 'The latest stories, guides, reviews, and explainers from Tatrix360.',
+  alternates: {
+    canonical: '/latest',
+  },
+  openGraph: {
+    title: 'Latest — Tatrix360',
+    description: 'The latest stories, guides, reviews, and explainers from Tatrix360.',
+    url: '/latest',
+  },
+};
 
 export default async function LatestPage() {
   const posts = await getPosts({
@@ -23,7 +37,7 @@ export default async function LatestPage() {
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {posts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
