@@ -14,6 +14,8 @@ import {
   Wrench,
   Info,
   Circle,
+  Apple,
+  MonitorSmartphone,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -22,7 +24,8 @@ import { ThemeToggle } from '@/components/site/theme-toggle';
 
 const iconMap: Record<string, LucideIcon> = {
   '/category/ai': BrainCircuit,
-  '/category/android-ios': Smartphone,
+  '/category/android': Smartphone, // Android uses Smartphone icon
+  '/category/ios': Apple, // iOS uses Apple icon
   '/category/gadgets': Laptop,
   '/category/deals': Tag,
   '/category/how-to': Wrench,
