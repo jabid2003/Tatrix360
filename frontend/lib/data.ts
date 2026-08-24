@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { Post, Category, Author, Tag, MenuItem } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -191,6 +192,254 @@ export async function getPostByCategoryAndSlug(
   }
 
   return { status: 'ok', post };
+}
+
+// ---------------------------------------------------------------------------
+// Admin: create / update / delete posts
+// ---------------------------------------------------------------------------
+//
+// Author and tags are "find or create by name" — the admin form lets the
+// user pick an existing one or type a brand-new name, and we resolve that
+// into a real row (reusing an existing match by case-insensitive name, or
+// inserting a new one) rather than requiring the name to already exist.
+// Category is NOT find-or-create — the form only offers a dropdown of
+// existing categories, so callers always pass a real category_id.
+//
+// All writes here (posts, authors, tags, post_tags) use `supabaseAdmin`
+// (service-role key, bypasses RLS). These functions are only ever called
+// from the password-protected admin routes — that middleware check is the
+// real security boundary, not RLS. Public reads elsewhere in this file
+// keep using the anon `supabase` client.
+// ---------------------------------------------------------------------------
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+async function findOrCreateAuthorId(name: string): Promise<number | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  const { data: existing } = await supabaseAdmin
+    .from('authors')
+    .select('id')
+    .ilike('name', trimmed)
+    .maybeSingle();
+
+  if (existing) return existing.id;
+
+  const { data: created, error } = await supabaseAdmin
+    .from('authors')
+    .insert({ name: trimmed, slug: slugify(trimmed) })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('[supabase] findOrCreateAuthorId insert error:', error.message);
+    return null;
+  }
+  return created.id;
+}
+
+async function findOrCreateTagIds(names: string[]): Promise<number[]> {
+  const ids: number[] = [];
+
+  for (const raw of names) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+
+    const { data: existing } = await supabaseAdmin
+      .from('tags')
+      .select('id')
+      .ilike('name', trimmed)
+      .maybeSingle();
+
+    if (existing) {
+      ids.push(existing.id);
+      continue;
+    }
+
+    const { data: created, error } = await supabaseAdmin
+      .from('tags')
+      .insert({ name: trimmed, slug: slugify(trimmed) })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('[supabase] findOrCreateTagIds insert error:', error.message);
+      continue;
+    }
+    ids.push(created.id);
+  }
+
+  return ids;
+}
+
+async function syncPostTags(postId: number, tagIds: number[]): Promise<void> {
+  // Simplest way to keep post_tags in sync on update: wipe this post's
+  // rows and reinsert. Fine at this scale (a handful of tags per post).
+  await supabaseAdmin.from('post_tags').delete().eq('post_id', postId);
+  if (tagIds.length > 0) {
+    await supabaseAdmin
+      .from('post_tags')
+      .insert(tagIds.map((tagId) => ({ post_id: postId, tag_id: tagId })));
+  }
+}
+
+export interface PostInput {
+  title: string;
+  slug: string;
+  subtitle?: string;
+  content?: string;
+  categoryId: number;
+  authorName: string;
+  tagNames: string[];
+  heroImage?: string;
+  postType?: Post['postType'];
+  seoTitle?: string;
+  seoDescription?: string;
+  featured?: boolean;
+  status: NonNullable<Post['status']>;
+  /** ISO string. If omitted and status is 'Published', defaults to now. */
+  publishedAt?: string | null;
+}
+
+export async function createPost(
+  input: PostInput
+): Promise<{ ok: boolean; post?: Post; error?: string }> {
+  const authorId = await findOrCreateAuthorId(input.authorName);
+  const tagIds = await findOrCreateTagIds(input.tagNames);
+
+  const { data, error } = await supabaseAdmin
+    .from('posts')
+    .insert({
+      title: input.title,
+      slug: input.slug,
+      subtitle: input.subtitle || null,
+      content: input.content || null,
+      category_id: input.categoryId,
+      author_id: authorId,
+      hero_image: input.heroImage || null,
+      post_type: input.postType || null,
+      seo_title: input.seoTitle || null,
+      seo_description: input.seoDescription || null,
+      featured: input.featured ?? false,
+      status: input.status,
+      published_at:
+        input.publishedAt ?? (input.status === 'Published' ? new Date().toISOString() : null),
+      views: 0,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    console.error('[supabase] createPost error:', error?.message);
+    return { ok: false, error: error?.message || 'Failed to create post.' };
+  }
+
+  await syncPostTags(data.id, tagIds);
+
+  const post = await getPostBySlug(input.slug);
+  return { ok: true, post: post ?? undefined };
+}
+
+export async function updatePost(
+  id: number,
+  input: PostInput
+): Promise<{ ok: boolean; post?: Post; error?: string }> {
+  const authorId = await findOrCreateAuthorId(input.authorName);
+  const tagIds = await findOrCreateTagIds(input.tagNames);
+
+  const { error } = await supabaseAdmin
+    .from('posts')
+    .update({
+      title: input.title,
+      slug: input.slug,
+      subtitle: input.subtitle || null,
+      content: input.content || null,
+      category_id: input.categoryId,
+      author_id: authorId,
+      hero_image: input.heroImage || null,
+      post_type: input.postType || null,
+      seo_title: input.seoTitle || null,
+      seo_description: input.seoDescription || null,
+      featured: input.featured ?? false,
+      status: input.status,
+      published_at:
+        input.publishedAt ?? (input.status === 'Published' ? new Date().toISOString() : null),
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('[supabase] updatePost error:', error.message);
+    return { ok: false, error: error.message };
+  }
+
+  await syncPostTags(id, tagIds);
+
+  const post = await getPostBySlug(input.slug);
+  return { ok: true, post: post ?? undefined };
+}
+
+export async function deletePost(id: number): Promise<{ ok: boolean; error?: string }> {
+  // Delete the join rows first regardless of whether the DB has ON DELETE
+  // CASCADE configured for post_tags.post_id — explicit here is cheap and
+  // avoids relying on schema details we haven't verified.
+  await supabaseAdmin.from('post_tags').delete().eq('post_id', id);
+
+  const { error } = await supabaseAdmin.from('posts').delete().eq('id', id);
+
+  if (error) {
+    console.error('[supabase] deletePost error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+export async function getPostById(id: number): Promise<Post | null> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      categories!posts_category_id_fkey (*),
+      authors!posts_author_id_fkey (*),
+      post_tags ( tags (*) )
+    `)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[supabase] getPostById error:', error.message);
+    return null;
+  }
+  if (!data) return null;
+  return mapPost(data as unknown as PostRow);
+}
+
+// Admin listing — unlike getPosts(), this does NOT filter by
+// status: 'Published'. Drafts and archived posts need to show up in the
+// dashboard too.
+export async function getAdminPosts(): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      categories!posts_category_id_fkey (*),
+      authors!posts_author_id_fkey (*),
+      post_tags ( tags (*) )
+    `)
+    .order('id', { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error('[supabase] getAdminPosts error:', error.message);
+    return [];
+  }
+  return (data as unknown as PostRow[]).map(mapPost);
 }
 
 export async function getTrendingPosts(limit = 5): Promise<Post[]> {
