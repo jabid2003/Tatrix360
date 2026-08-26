@@ -1,27 +1,28 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { getPostByCategoryAndSlug, getPosts } from '@/lib/data';
-import { formatDate } from '@/lib/utils';
+import { formatDate, estimateReadingTime } from '@/lib/utils';
+import { getImageBlurUrl } from '@/lib/image-utils';
 import { NewsletterBox } from '@/components/site/newsletter-box';
 import { CompactCard } from '@/components/site/post-card';
 import { PostViewTracker } from '@/components/PostViewTracker';
 import ArticleActions from '@/components/article-actions';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Clock } from 'lucide-react';
+
+// ISR: revalidate every 60 s.  Removed the old `dynamic = 'force-dynamic'`
+// which conflicted with generateStaticParams — Next.js ignores
+// generateStaticParams when `dynamic = 'force-dynamic'` is set, so every
+// visit became a full SSR request and the build still tried (and failed)
+// to pre-render pages it couldn't.
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const posts = await getPosts({ pageSize: 50 });
 
-  // Only pre-render posts that actually have a category. A post with no
-  // category can never resolve successfully under any category segment
-  // (getPostByCategoryAndSlug always returns 'not-found' for it), so
-  // there's no valid path to generate for it here.
   return posts
     .filter((p) => !!p.category)
     .map((p) => ({
@@ -29,6 +30,13 @@ export async function generateStaticParams() {
       slug: p.slug,
     }));
 }
+
+// `fallback: 'blocking'` means posts not in generateStaticParams are
+// rendered on-demand (blocking) and then cached via `revalidate`.
+// This way the build succeeds even if Supabase is slow — only the
+// pages that ARE pre-rendered are affected by build-time timeouts,
+// and new posts appear immediately without a redeploy.
+export const fallback = 'blocking';
 
 export async function generateMetadata({
   params,
@@ -250,6 +258,12 @@ export default async function ArticlePage({
 
           <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
             <span>{formatDate(post.publishedAt)}</span>
+            {post.content && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                {estimateReadingTime(post.content)} min read
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -265,6 +279,8 @@ export default async function ArticlePage({
             className="h-auto w-full rounded-2xl"
             sizes="(max-width: 768px) 100vw, 56rem"
             priority
+            placeholder="blur"
+            blurDataURL={getImageBlurUrl(post.heroImage)}
           />
         </div>
       )}

@@ -12,6 +12,8 @@ export async function generateStaticParams() {
   }));
 }
 
+export const fallback = 'blocking';
+
 export async function generateMetadata({
   params,
 }: {
@@ -23,6 +25,11 @@ export async function generateMetadata({
   return {
     title: category?.name,
     description: category?.description,
+    openGraph: {
+      title: category?.name,
+      description: category?.description,
+      type: 'website',
+    },
   };
 }
 
@@ -45,31 +52,55 @@ export default async function CategoryPage({
     notFound();
   }
 
-  return (
-    <main className="container-page py-8">
-      <header className="mb-8">
-        <h1 className="font-serif text-3xl font-bold sm:text-4xl">
-          {category.name}
-        </h1>
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://tatrix360.com';
 
-        {category.description && (
-          <p className="mt-2 text-lg text-muted-foreground">
-            {category.description}
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: category.name,
+    description: category.description,
+    url: `${siteUrl}/category/${category.slug}`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Tatrix360',
+      url: siteUrl,
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      <main className="container-page py-8">
+        <header className="mb-8">
+          <h1 className="font-serif text-3xl font-bold sm:text-4xl">
+            {category.name}
+          </h1>
+
+          {category.description && (
+            <p className="mt-2 text-lg text-muted-foreground">
+              {category.description}
+            </p>
+          )}
+        </header>
+
+        {posts.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">
+            No articles in this category yet.
           </p>
         )}
-      </header>
-
-      {posts.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-      ) : (
-        <p className="text-muted-foreground">
-          No articles in this category yet.
-        </p>
-      )}
-    </main>
+      </main>
+    </>
   );
 }

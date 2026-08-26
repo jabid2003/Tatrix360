@@ -1,8 +1,40 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { Post, Category, Author, Tag, MenuItem } from '@/lib/types';
+
+// ---------------------------------------------------------------------------
+// Build-time retry wrapper
+// ---------------------------------------------------------------------------
+// During `next build`, `generateStaticParams` fires many queries against
+// Supabase in quick succession.  A single transient timeout kills the
+// entire build.  `retry` wraps any async function and retries it up to
+// `maxAttempts` times with exponential back-off.
+// ---------------------------------------------------------------------------
+
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+
+async function retry<T>(
+  fn: () => Promise<T>,
+  { maxAttempts = isBuild ? 3 : 1, label = '' } = {}
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxAttempts) {
+        const delay = 1_000 * Math.pow(2, attempt - 1); // 1 s, 2 s, 4 s …
+        console.warn(
+          `[retry] ${label} attempt ${attempt}/${maxAttempts} failed, retrying in ${delay}ms…`,
+          err instanceof Error ? err.message : err
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
 
 // ---------------------------------------------------------------------------
 // Row types from Supabase
@@ -92,50 +124,54 @@ function mapPost(p: PostRow): Post {
 // ---------------------------------------------------------------------------
 
 export async function getPosts(opts: { featured?: boolean; pageSize?: number; categorySlug?: string } = {}): Promise<Post[]> {
-  let query = supabase
-    .from('posts')
-    .select(`
-      *,
-      categories!posts_category_id_fkey (*),
-      authors!posts_author_id_fkey (*),
-      post_tags ( tags (*) )
-    `)
-    .eq('status', 'Published')
-    .order('published_at', { ascending: false });
+  return retry(async () => {
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        categories!posts_category_id_fkey (*),
+        authors!posts_author_id_fkey (*),
+        post_tags ( tags (*) )
+      `)
+      .eq('status', 'Published')
+      .order('published_at', { ascending: false });
 
-  if (opts.featured) query = query.eq('featured', true);
-  if (opts.categorySlug) {
-    const { data: cat } = await supabase.from('categories').select('id').eq('slug', opts.categorySlug).maybeSingle();
-    if (cat) query = query.eq('category_id', cat.id);
-  }
+    if (opts.featured) query = query.eq('featured', true);
+    if (opts.categorySlug) {
+      const { data: cat } = await supabase.from('categories').select('id').eq('slug', opts.categorySlug).maybeSingle();
+      if (cat) query = query.eq('category_id', cat.id);
+    }
 
-  const limit = opts.pageSize ?? 10;
-  const { data, error } = await query.limit(limit);
-  if (error) {
-    console.error('[supabase] getPosts error:', error.message);
-    return [];
-  }
-  return (data as unknown as PostRow[]).map(mapPost);
+    const limit = opts.pageSize ?? 10;
+    const { data, error } = await query.limit(limit);
+    if (error) {
+      console.error('[supabase] getPosts error:', error.message);
+      return [];
+    }
+    return (data as unknown as PostRow[]).map(mapPost);
+  }, { label: 'getPosts' });
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select(`
-      *,
-      categories!posts_category_id_fkey (*),
-      authors!posts_author_id_fkey (*),
-      post_tags ( tags (*) )
-    `)
-    .eq('slug', slug)
-    .maybeSingle();
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        categories!posts_category_id_fkey (*),
+        authors!posts_author_id_fkey (*),
+        post_tags ( tags (*) )
+      `)
+      .eq('slug', slug)
+      .maybeSingle();
 
-  if (error) {
-    console.error('[supabase] getPostBySlug error:', error.message);
-    return null;
-  }
-  if (!data) return null;
-  return mapPost(data as unknown as PostRow);
+    if (error) {
+      console.error('[supabase] getPostBySlug error:', error.message);
+      return null;
+    }
+    if (!data) return null;
+    return mapPost(data as unknown as PostRow);
+  }, { label: 'getPostBySlug' });
 }
 
 // ---------------------------------------------------------------------------
@@ -463,16 +499,18 @@ export async function getTrendingPosts(limit = 5): Promise<Post[]> {
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order', { ascending: true });
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
 
-  if (error) {
-    console.error('[supabase] getCategories error:', error.message);
-    return [];
-  }
-  return (data as CategoryRow[]).map(mapCategory);
+    if (error) {
+      console.error('[supabase] getCategories error:', error.message);
+      return [];
+    }
+    return (data as CategoryRow[]).map(mapCategory);
+  }, { label: 'getCategories' });
 }
 
 export async function getAuthors(): Promise<Author[]> {
@@ -494,21 +532,23 @@ export async function getTags(): Promise<Tag[]> {
 }
 
 export async function getMenu(): Promise<MenuItem[]> {
-  const { data, error } = await supabase
-    .from('menu_items')
-    .select('*')
-    .order('sort_order', { ascending: true });
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .order('sort_order', { ascending: true });
 
-  if (error) {
-    console.error('[supabase] getMenu error:', error.message);
-    return [];
-  }
-  return (data as (MenuItem & { sort_order: number })[]).map((m) => ({
-    id: m.id,
-    label: m.label,
-    url: m.url,
-    order: m.sort_order,
-  }));
+    if (error) {
+      console.error('[supabase] getMenu error:', error.message);
+      return [];
+    }
+    return (data as (MenuItem & { sort_order: number })[]).map((m) => ({
+      id: m.id,
+      label: m.label,
+      url: m.url,
+      order: m.sort_order,
+    }));
+  }, { label: 'getMenu' });
 }
 
 export async function searchPosts(query: string): Promise<Post[]> {

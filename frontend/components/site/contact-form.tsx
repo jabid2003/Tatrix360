@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2, CheckCircle2, Send, Mail, MapPin } from 'lucide-react';
+import { useCsrfToken } from '@/hooks/use-csrf';
 
 type FormState = {
   name: string;
@@ -13,12 +14,13 @@ type FormState = {
 export function ContactForm() {
   const [form, setForm] = useState<FormState>({ name: '', email: '', message: '', company: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const { authedFetch } = useCsrfToken();
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus('loading');
     try {
-      const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await authedFetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error();
       setStatus('success');
     } catch {
