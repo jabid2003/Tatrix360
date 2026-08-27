@@ -1,22 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Post } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
-
-// Views and read-time temporarily disabled.
-// import { formatDate, formatViews } from '@/lib/utils';
-// import { Eye, Clock } from 'lucide-react';
-
-/*
-function getReadTime(content?: string): string {
-  if (!content) return '5 min';
-
-  const words = content.split(/\s+/).length;
-  const minutes = Math.max(1, Math.round(words / 200));
-
-  return `${minutes} min`;
-}
-*/
+import { formatDate, estimateReadingTime } from '@/lib/utils';
+import { getImageBlurUrl } from '@/lib/image-utils';
+import { Clock } from 'lucide-react';
 
 // Returns null when the post has no category, rather than falling back to
 // a fake '/uncategorized/...' path. That fallback used to produce a
@@ -45,6 +32,8 @@ export function PostCard({ post }: { post: Post }) {
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
+          placeholder="blur"
+          blurDataURL={getImageBlurUrl(post.heroImage)}
         />
       ) : (
         <div
@@ -124,6 +113,19 @@ export function PostCard({ post }: { post: Post }) {
           <span className="whitespace-nowrap">
             {formatDate(post.publishedAt)}
           </span>
+
+          {post.content && (
+            <>
+              <span
+                aria-hidden="true"
+                className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40"
+              />
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <Clock className="h-3 w-3" />
+                {estimateReadingTime(post.content)} min
+              </span>
+            </>
+          )}
         </div>
       </div>
     </article>

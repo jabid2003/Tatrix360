@@ -1,19 +1,43 @@
 import { NextResponse } from 'next/server';
 import { submitContact } from '@/lib/data';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { verifyCsrfToken } from '@/lib/csrf';
+import { contactSchema } from '@/lib/validation';
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return 'unknown';
+}
 
 export async function POST(req: Request) {
-  let body: any;
+  const ip = getClientIp(req);
+  const rateLimit = await checkRateLimit('contact', ip);
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+    );
+  }
+
+  const csrfToken = req.headers.get('x-csrf-token');
+  if (!csrfToken || !(await verifyCsrfToken(csrfToken))) {
+    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
+  }
+
+  let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }); }
 
-  const name = String(body?.name || '').trim();
-  const email = String(body?.email || '').trim();
-  const message = String(body?.message || '').trim();
-  const company = String(body?.company || '').trim();
+  const parsed = contactSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message || 'Invalid input';
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  const { name, email, message, company } = parsed.data;
 
   if (company) return NextResponse.json({ ok: true });
-  if (!name || !email || !message) return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'A valid email is required' }, { status: 400 });
-  if (message.length > 5000) return NextResponse.json({ error: 'Message too long' }, { status: 400 });
 
   const result = await submitContact(name, email, message);
   if (!result.ok) {

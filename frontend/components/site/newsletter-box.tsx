@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { Mail, CheckCircle2, Loader2, ArrowRight, Sparkles } from 'lucide-react';
+import { useCsrfToken } from '@/hooks/use-csrf';
 
 export function NewsletterBox({ variant = 'full' }: { variant?: 'full' | 'compact' }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const { authedFetch } = useCsrfToken();
 
   async function subscribe(e: React.FormEvent) {
     e.preventDefault();
     setStatus('loading');
     try {
-      const res = await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      const res = await authedFetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
       if (!res.ok) throw new Error();
       setStatus('success');
       setEmail('');
@@ -22,7 +24,7 @@ export function NewsletterBox({ variant = 'full' }: { variant?: 'full' | 'compac
 
   if (variant === 'compact') {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-5">
+      <div className="glass-card relative overflow-hidden rounded-2xl p-5">
         <div className="hero-glow" />
         <div className="relative">
           <h3 className="font-serif text-base font-bold">Stay in the loop</h3>
@@ -39,11 +41,11 @@ export function NewsletterBox({ variant = 'full' }: { variant?: 'full' | 'compac
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+                className="flex-1 rounded-lg border border-input bg-background/80 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
               />
               <button
                 disabled={status === 'loading'}
-                className="flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-all hover:shadow-glow disabled:opacity-50"
+                className="flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 disabled:opacity-50"
               >
                 {status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               </button>
@@ -56,7 +58,7 @@ export function NewsletterBox({ variant = 'full' }: { variant?: 'full' | 'compac
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-8 sm:p-12">
+    <div className="glass-card relative overflow-hidden rounded-3xl p-8 sm:p-12">
       <div className="hero-glow" />
       <div className="relative mx-auto max-w-xl text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -78,11 +80,11 @@ export function NewsletterBox({ variant = 'full' }: { variant?: 'full' | 'compac
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="flex-1 rounded-xl border border-input bg-background px-4 py-3 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+              className="flex-1 rounded-xl border border-input bg-background/80 px-4 py-3 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <button
               disabled={status === 'loading'}
-              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all hover:shadow-glow disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:brightness-110 disabled:opacity-50"
             >
               {status === 'loading' ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Subscribe <ArrowRight className="h-4 w-4" /></>}
             </button>
