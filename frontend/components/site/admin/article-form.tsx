@@ -38,6 +38,7 @@ export function ArticleForm({ categories, authorNames, mode, postId, initialPost
   const [authorName, setAuthorName] = useState(initialPost?.author?.name ?? '');
   const [tagsInput, setTagsInput] = useState(initialPost?.tags?.map((t) => t.name).join(', ') ?? '');
   const [heroImage, setHeroImage] = useState(initialPost?.heroImage ?? '');
+  const [heroPublicId, setHeroPublicId] = useState('');
   const [postType, setPostType] = useState(initialPost?.postType ?? '');
   const [seoTitle, setSeoTitle] = useState(initialPost?.seoTitle ?? '');
   const [seoDescription, setSeoDescription] = useState(initialPost?.seoDescription ?? '');
@@ -65,6 +66,7 @@ export function ArticleForm({ categories, authorNames, mode, postId, initialPost
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('title', title);
 
       const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
       const data = await res.json();
@@ -76,6 +78,7 @@ export function ArticleForm({ categories, authorNames, mode, postId, initialPost
       }
 
       setHeroImage(data.url);
+      setHeroPublicId(data.publicId);
     } catch {
       setError('Image upload failed. Please try again.');
     } finally {
@@ -205,7 +208,17 @@ export function ArticleForm({ categories, authorNames, mode, postId, initialPost
             </div>
             <button
               type="button"
-              onClick={() => setHeroImage('')}
+              onClick={async () => {
+                if (heroPublicId) {
+                  await fetch('/api/admin/upload', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ publicId: heroPublicId }),
+                  });
+                }
+                setHeroImage('');
+                setHeroPublicId('');
+              }}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
               <X className="h-3.5 w-3.5" />

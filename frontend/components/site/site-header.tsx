@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import Image from 'next/image';
 import {
   Search,
   Menu,
@@ -47,32 +46,24 @@ export function SiteHeader({ menu }: { menu: MenuItem[] }) {
   const navItems = hasHome ? menu : [HOME_ITEM, ...menu];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/50">
-      <div className="container-page flex h-16 items-center justify-between gap-4">
-        {/* Logo + Slogan */}
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
+      <div className="container-page flex h-14 items-center justify-between gap-4">
         <Link
           href="/"
-          className="group flex items-center gap-3 transition-opacity hover:opacity-80"
+          className="group flex items-center gap-2.5 transition-opacity hover:opacity-80"
           aria-label="Tatrix360 Home"
         >
-          {/* Logo mark */}
-          <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/20">
-            <Zap className="h-5 w-5 text-white" fill="currentColor" aria-hidden="true" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Zap className="h-4 w-4 text-primary-foreground" fill="currentColor" aria-hidden="true" />
           </span>
-
-          {/* Brand name + slogan */}
           <span className="hidden sm:block">
-            <span className="block text-lg font-bold leading-tight tracking-tight text-foreground">
+            <span className="text-base font-bold tracking-tight text-foreground">
               <span>Tatrix</span>
               <span className="text-primary">360</span>
-            </span>
-            <span className="block text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">
-              Tech, decoded
             </span>
           </span>
         </Link>
 
-        {/* Desktop navigation */}
         <nav
           className="hidden items-center gap-1 md:flex"
           aria-label="Main navigation"
@@ -85,37 +76,29 @@ export function SiteHeader({ menu }: { menu: MenuItem[] }) {
               <Link
                 key={item.id}
                 href={item.url}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                   isHome
-                    ? 'text-foreground hover:bg-primary/10 hover:text-primary'
+                    ? 'text-foreground hover:bg-muted'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <Icon
-                  className="h-4 w-4 shrink-0"
-                  strokeWidth={1.8}
-                  aria-hidden="true"
-                />
+                <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden="true" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Right actions */}
         <div className="flex items-center gap-1">
           <ThemeToggle />
 
           <Link
             href="/search"
-            className="group flex items-center gap-2 rounded-lg border border-border/60 bg-card/50 px-3 py-2 text-sm text-muted-foreground transition-all hover:border-primary/30 hover:bg-card hover:text-foreground"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Search"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             <span className="hidden lg:inline">Search</span>
-            <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline">
-              ⌘K
-            </kbd>
           </Link>
 
           <button
@@ -126,20 +109,15 @@ export function SiteHeader({ menu }: { menu: MenuItem[] }) {
             aria-expanded={open}
             aria-controls="mobile-navigation"
           >
-            {open ? (
-              <X className="h-5 w-5" aria-hidden="true" />
-            ) : (
-              <Menu className="h-5 w-5" aria-hidden="true" />
-            )}
+            {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile navigation */}
       {open && (
         <nav
           id="mobile-navigation"
-          className="border-t border-border/60 bg-background/95 backdrop-blur-xl md:hidden"
+          className="border-t border-border bg-background md:hidden"
           aria-label="Mobile navigation"
         >
           <div className="container-page flex flex-col py-2">
@@ -151,13 +129,9 @@ export function SiteHeader({ menu }: { menu: MenuItem[] }) {
                   key={item.id}
                   href={item.url}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  <Icon
-                    className="h-5 w-5 shrink-0"
-                    strokeWidth={1.8}
-                    aria-hidden="true"
-                  />
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
                   <span>{item.label}</span>
                 </Link>
               );
