@@ -13,11 +13,6 @@ import ArticleActions from '@/components/article-actions';
 
 import { ArrowLeft, Clock } from 'lucide-react';
 
-// ISR: revalidate every 60 s.  Removed the old `dynamic = 'force-dynamic'`
-// which conflicted with generateStaticParams — Next.js ignores
-// generateStaticParams when `dynamic = 'force-dynamic'` is set, so every
-// visit became a full SSR request and the build still tried (and failed)
-// to pre-render pages it couldn't.
 export const revalidate = 60;
 
 export async function generateStaticParams() {
@@ -31,11 +26,6 @@ export async function generateStaticParams() {
     }));
 }
 
-// `fallback: 'blocking'` means posts not in generateStaticParams are
-// rendered on-demand (blocking) and then cached via `revalidate`.
-// This way the build succeeds even if Supabase is slow — only the
-// pages that ARE pre-rendered are affected by build-time timeouts,
-// and new posts appear immediately without a redeploy.
 export const fallback = 'blocking';
 
 export async function generateMetadata({
@@ -55,11 +45,6 @@ export async function generateMetadata({
     process.env.NEXT_PUBLIC_SITE_URL ||
     'https://tatrix360.com';
 
-  // Always build the canonical URL from the post's real category
-  // (post.category.slug), not params.category. If this request came in
-  // on a wrong-category URL, the page body will redirect — but metadata
-  // resolution and rendering are separate passes in Next.js, so this
-  // guarantees <link rel="canonical"> and og:url are correct regardless.
   const canonicalCategory = post.category?.slug ?? params.category;
 
   const articleUrl = new URL(
@@ -79,11 +64,7 @@ export async function generateMetadata({
   return {
     title: post.seoTitle || post.title,
     description,
-
-    alternates: {
-      canonical: articleUrl,
-    },
-
+    alternates: { canonical: articleUrl },
     openGraph: {
       title: post.title,
       description,
@@ -91,19 +72,9 @@ export async function generateMetadata({
       siteName: 'Tatrix360',
       type: 'article',
       publishedTime: post.publishedAt,
-      authors: post.author?.name
-        ? [post.author.name]
-        : undefined,
-      images: imageUrl
-        ? [
-            {
-              url: imageUrl,
-              alt: post.title,
-            },
-          ]
-        : undefined,
+      authors: post.author?.name ? [post.author.name] : undefined,
+      images: imageUrl ? [{ url: imageUrl, alt: post.title }] : undefined,
     },
-
     twitter: {
       card: 'summary_large_image',
       title: post.title,
@@ -125,11 +96,6 @@ export default async function ArticlePage({
   }
 
   if (result.status === 'wrong-category') {
-    // The post exists but was requested under the wrong category segment
-    // (this is the exact bug: /tech/some-slug resolving even though the
-    // post belongs to /ai/some-slug). Redirect to the canonical URL
-    // instead of rendering it or 404ing — the content is real, it's just
-    // at a different address.
     redirect(`/${result.correctCategorySlug}/${params.slug}`);
   }
 
@@ -147,89 +113,60 @@ export default async function ArticlePage({
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: post.title,
-    description:
-      post.seoDescription ||
-      post.subtitle ||
-      undefined,
+    description: post.seoDescription || post.subtitle || undefined,
     datePublished: post.publishedAt,
     dateModified: post.publishedAt,
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': `${process.env.NEXT_PUBLIC_SITE_URL || 'https://tatrix360.com'}/${post.category?.slug}/${params.slug}`,
     },
-    author: post.author
-      ? {
-          '@type': 'Person',
-          name: post.author.name,
-        }
-      : undefined,
+    author: post.author ? { '@type': 'Person', name: post.author.name } : undefined,
     publisher: {
       '@type': 'Organization',
       name: 'Tatrix360',
-      url:
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        'https://tatrix360.com',
+      url: process.env.NEXT_PUBLIC_SITE_URL || 'https://tatrix360.com',
     },
-    image: post.heroImage
-      ? [post.heroImage]
-      : undefined,
+    image: post.heroImage ? [post.heroImage] : undefined,
   };
 
   return (
     <article className="container-page py-6 sm:py-10">
-      {/* View tracking */}
       <PostViewTracker slug={post.slug} />
 
-      {/* Structured data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground animate-in-up stagger-1">
-        <Link
-          href="/"
-          className="transition-colors hover:text-foreground"
-        >
-          Home
-        </Link>
-
+      <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
         <span>/</span>
-
-        <Link
-          href={`/category/${post.category?.slug}`}
-          className="transition-colors hover:text-foreground"
-        >
+        <Link href={`/category/${post.category?.slug}`} className="transition-colors hover:text-foreground">
           {post.category?.name}
         </Link>
       </nav>
 
-      {/* Article header */}
       <div className="mx-auto max-w-3xl">
         {post.category && (
           <Link
             href={`/category/${post.category.slug}`}
-            className="inline-block animate-in-up stagger-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
+            className="badge-primary"
           >
             {post.category.name}
           </Link>
         )}
 
-        <h1 className="mt-4 animate-in-up stagger-2 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl lg:text-balance">
+        <h1 className="mt-4 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl lg:text-balance">
           {post.title}
         </h1>
 
         {post.subtitle && (
-          <p className="mt-4 animate-in-up stagger-3 text-lg text-muted-foreground lg:text-xl lg:text-pretty">
+          <p className="mt-4 text-lg text-muted-foreground lg:text-xl lg:text-pretty">
             {post.subtitle}
           </p>
         )}
 
-        {/* Author and article metadata */}
-        <div className="mt-6 flex flex-wrap animate-in-up stagger-4 items-center gap-4 border-y border-border py-4">
+        <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-border py-4">
           {post.author && (
             <div className="flex items-center gap-3">
               {post.author.avatar && (
@@ -241,21 +178,14 @@ export default async function ArticlePage({
                   className="h-10 w-10 rounded-full object-cover ring-2 ring-border"
                 />
               )}
-
               <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {post.author.name}
-                </p>
-
+                <p className="text-sm font-semibold text-foreground">{post.author.name}</p>
                 {post.author.role && (
-                  <p className="text-xs text-muted-foreground">
-                    {post.author.role}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{post.author.role}</p>
                 )}
               </div>
             </div>
           )}
-
           <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
             <span>{formatDate(post.publishedAt)}</span>
             {post.content && (
@@ -268,15 +198,14 @@ export default async function ArticlePage({
         </div>
       </div>
 
-      {/* Hero image */}
       {post.heroImage && (
-        <div className="mx-auto mt-8 max-w-4xl animate-in-up stagger-4 overflow-hidden rounded-3xl bg-muted/30 p-3 sm:p-4">
+        <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-2xl border border-border bg-muted p-2 sm:p-3">
           <Image
             src={post.heroImage}
             alt={post.title}
             width={1200}
             height={800}
-            className="h-auto w-full rounded-2xl"
+            className="h-auto w-full rounded-xl"
             sizes="(max-width: 768px) 100vw, 56rem"
             priority
             placeholder="blur"
@@ -285,91 +214,59 @@ export default async function ArticlePage({
         </div>
       )}
 
-      {/* Share and copy actions below image */}
       <div className="mx-auto mt-4 flex max-w-4xl justify-end">
-        <ArticleActions
-          title={post.title}
-          description={post.subtitle}
-        />
+        <ArticleActions title={post.title} description={post.subtitle} />
       </div>
 
-      {/* Article body */}
       {post.content && (
-        <div className="prose-article mx-auto mt-10 max-w-3xl animate-in-up stagger-5 text-lg leading-relaxed">
+        <div className="prose-article mx-auto mt-10 max-w-3xl text-lg leading-relaxed">
           {post.content.split('\n').map((line, i) => {
             if (line.startsWith('## ')) {
               return (
-                <h2
-                  key={i}
-                  className="mt-8 font-serif text-2xl font-bold tracking-tight"
-                >
+                <h2 key={i} className="mt-8 font-serif text-2xl font-bold tracking-tight">
                   {line.slice(3)}
                 </h2>
               );
             }
-
             if (line.startsWith('- ')) {
               return (
-                <li key={i} className="ml-6 list-disc">
-                  {line.slice(2)}
-                </li>
+                <li key={i} className="ml-6 list-disc">{line.slice(2)}</li>
               );
             }
-
-            if (line.trim() === '') {
-              return null;
-            }
-
-            return (
-              <p key={i} className="mt-4">
-                {line}
-              </p>
-            );
+            if (line.trim() === '') return null;
+            return <p key={i} className="mt-4">{line}</p>;
           })}
         </div>
       )}
 
-      {/* Tags */}
       {post.tags && post.tags.length > 0 && (
         <div className="mx-auto mt-8 flex max-w-3xl flex-wrap gap-2">
           {post.tags.map((tag) => (
-            <span
-              key={tag.id}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
-            >
+            <span key={tag.id} className="badge">
               #{tag.name}
             </span>
           ))}
         </div>
       )}
 
-      {/* Back link */}
       <div className="mx-auto mt-8 max-w-3xl">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-        >
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
       </div>
 
-     {/* Related stories */}
-{relatedPosts.length > 0 && (
-  <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
-    <h2 className="font-serif text-2xl font-bold tracking-tight">
-      Related stories
-    </h2>
+      {relatedPosts.length > 0 && (
+        <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
+          <h2 className="font-serif text-xl font-bold tracking-tight">Related stories</h2>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            {relatedPosts.map((p) => (
+              <CompactCard key={p.id} post={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6">
-      {relatedPosts.map((p) => (
-        <CompactCard key={p.id} post={p} />
-      ))}
-    </div>
-  </section>
-)}
-
-      {/* Newsletter */}
       <div className="mx-auto mt-16 max-w-4xl">
         <NewsletterBox />
       </div>

@@ -99,131 +99,24 @@
     @apply prose-headings:scroll-mt-20 prose-p:leading-relaxed prose-p:text-muted-foreground;
   }
 
-  /* ── Glassmorphism ─────────────────────────────────── */
-  .glass {
-    @apply border border-white/10 bg-white/60 backdrop-blur-xl;
-  }
-  .dark .glass {
-    @apply border-white/[0.06] bg-white/[0.03];
-  }
-
-  .glass-strong {
-    @apply border border-white/15 bg-white/70 backdrop-blur-2xl;
-  }
-  .dark .glass-strong {
-    @apply border-white/[0.08] bg-white/[0.05];
-  }
-
-  .glass-card {
-    @apply rounded-2xl border border-white/10 bg-white/50 shadow-lg shadow-black/[0.03] backdrop-blur-xl transition-all duration-300;
-  }
-  .dark .glass-card {
-    @apply border-white/[0.06] bg-white/[0.03] shadow-black/20;
-  }
-  .glass-card:hover {
-    @apply -translate-y-0.5 shadow-xl shadow-primary/[0.04] border-primary/20;
-  }
-
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary via-cyan-400 to-blue-500 bg-clip-text text-transparent;
-  }
-
-  .gradient-border {
-    position: relative;
-  }
-
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.4), transparent 50%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
+  .card {
+    @apply rounded-2xl border border-border bg-card;
   }
 
   .card-hover {
-    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5;
+    @apply transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg;
   }
 
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--muted)) 0%,
-      hsl(var(--muted) / 0.5) 50%,
-      hsl(var(--muted)) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
+  .badge {
+    @apply inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground;
   }
 
-  .hero-glow {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
+  .badge-primary {
+    @apply inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary;
   }
 
-  .hero-glow::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -10%;
-    width: 60%;
-    height: 120%;
-    background: radial-gradient(circle, hsl(var(--primary) / 0.12), transparent 70%);
-    filter: blur(60px);
-  }
-
-  .hero-glow::after {
-    content: '';
-    position: absolute;
-    bottom: -50%;
-    right: -10%;
-    width: 60%;
-    height: 120%;
-    background: radial-gradient(circle, hsl(199 89% 48% / 0.08), transparent 70%);
-    filter: blur(60px);
-  }
-
-  /* ── Hero mesh background ──────────────────────────── */
-  .hero-mesh {
-    background-image:
-      radial-gradient(at 20% 30%, hsl(var(--primary) / 0.08) 0px, transparent 50%),
-      radial-gradient(at 80% 20%, hsl(199 89% 48% / 0.06) 0px, transparent 50%),
-      radial-gradient(at 50% 80%, hsl(200 100% 50% / 0.05) 0px, transparent 50%);
-  }
-  .dark .hero-mesh {
-    background-image:
-      radial-gradient(at 20% 30%, hsl(var(--primary) / 0.12) 0px, transparent 50%),
-      radial-gradient(at 80% 20%, hsl(199 89% 48% / 0.08) 0px, transparent 50%),
-      radial-gradient(at 50% 80%, hsl(200 100% 50% / 0.06) 0px, transparent 50%);
-  }
-
-  /* ── Animated grid pattern ─────────────────────────── */
-  .hero-grid {
-    background-image:
-      linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
-    background-size: 60px 60px;
-  }
-
-  /* ── Feature icon wrapper ──────────────────────────── */
-  .feature-icon {
-    @apply flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground;
-  }
-
-  /* ── Stat counter card ─────────────────────────────── */
-  .stat-card {
-    @apply glass-card p-6 text-center;
-  }
-
-  /* ── Trust badge ───────────────────────────────────── */
-  .trust-badge {
-    @apply flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-4 py-2 text-sm text-muted-foreground backdrop-blur-sm;
+  .section-label {
+    @apply text-sm font-semibold uppercase tracking-wider text-muted-foreground;
   }
 }
 
@@ -236,11 +129,6 @@
     text-wrap: pretty;
   }
 
-  .mask-fade-r {
-    -webkit-mask-image: linear-gradient(to right, black 80%, transparent);
-    mask-image: linear-gradient(to right, black 80%, transparent);
-  }
-
   .animate-in-up {
     animation: in-up 0.5s ease-out both;
   }
@@ -249,23 +137,12 @@
     animation: in-fade 0.4s ease-out both;
   }
 
-  .animate-scale-in {
-    animation: scale-in 0.3s ease-out both;
-  }
-
   .stagger-1 { animation-delay: 0.05s; }
   .stagger-2 { animation-delay: 0.1s; }
   .stagger-3 { animation-delay: 0.15s; }
   .stagger-4 { animation-delay: 0.2s; }
   .stagger-5 { animation-delay: 0.25s; }
   .stagger-6 { animation-delay: 0.3s; }
-  .stagger-7 { animation-delay: 0.35s; }
-  .stagger-8 { animation-delay: 0.4s; }
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }
 
 @keyframes in-up {
@@ -276,31 +153,4 @@
 @keyframes in-fade {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes loading-bar {
-  0% { transform: scaleX(0); transform-origin: left; }
-  50% { transform: scaleX(1); transform-origin: left; }
-  51% { transform-origin: right; }
-  100% { transform: scaleX(0); transform-origin: right; }
-}
-
-@keyframes content-reveal {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
 }

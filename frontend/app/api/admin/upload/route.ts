@@ -7,15 +7,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-// Protected by middleware.ts (matcher includes /api/admin/:path*) — no
-// valid session cookie means this request never reaches here.
+export function sanitizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
+    const title = formData.get('title')?.toString() ?? '';
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ ok: false, error: 'No file provided.' }, { status: 400 });
@@ -39,14 +46,45 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes);
     const base64DataUri = `data:${file.type};base64,${buffer.toString('base64')}`;
 
+    const baseName = title ? sanitizeTitle(title) : `image-${Date.now()}`;
+    const publicId = `${baseName}-${Date.now()}`;
+
     const result = await cloudinary.uploader.upload(base64DataUri, {
       folder: 'tatrix360',
+      public_id: publicId,
       resource_type: 'image',
+      unique_filename: false,
+      overwrite: true,
     });
 
-    return NextResponse.json({ ok: true, url: result.secure_url });
+    return NextResponse.json({
+      ok: true,
+      url: result.secure_url,
+      publicId: result.public_id,
+    });
   } catch (err) {
     console.error('[admin upload] error:', err);
     return NextResponse.json({ ok: false, error: 'Upload failed.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { publicId } = await request.json();
+
+    if (!publicId || typeof publicId !== 'string') {
+      return NextResponse.json({ ok: false, error: 'Missing publicId.' }, { status: 400 });
+    }
+
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result !== 'ok') {
+      return NextResponse.json({ ok: false, error: 'Delete failed.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[admin delete] error:', err);
+    return NextResponse.json({ ok: false, error: 'Delete failed.' }, { status: 500 });
   }
 }
