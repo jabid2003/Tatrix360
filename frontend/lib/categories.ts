@@ -1,3 +1,10 @@
+/**
+ * @deprecated — All nav/links/tags are now 100% Supabase-driven.
+ * This file is kept only for reference; do not import in new code.
+ * Source of truth: `categories` + `subcategories` tables via lib/data.ts
+ */
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Description } from "@radix-ui/react-toast";
 
 export const categories = {

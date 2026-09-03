@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { cloudinary, sanitizeTitle } from '@/lib/cloudinary';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-export function sanitizeTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
-}
-
+/**
+ * Sanitize a blog title into a clean, URL-safe slug for use as Cloudinary public_id.
+ * Example: "Top 10 AI Tools in 2026!" → "top-10-ai-tools-in-2026"
+ */
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -46,8 +36,10 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes);
     const base64DataUri = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    const baseName = title ? sanitizeTitle(title) : `image-${Date.now()}`;
-    const publicId = `${baseName}-${Date.now()}`;
+    // Clean filename from title slug — no timestamps, no random strings
+    // Example: title "Best Phones Under 10000" → public_id: "best-phones-under-10000"
+    // Resulting URL: https://res.cloudinary.com/dhk3fypaz/image/upload/tatrix360/best-phones-under-10000.png
+    const publicId = title ? sanitizeTitle(title) : `image-${Date.now()}`;
 
     const result = await cloudinary.uploader.upload(base64DataUri, {
       folder: 'tatrix360',

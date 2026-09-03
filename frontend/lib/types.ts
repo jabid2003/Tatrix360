@@ -21,6 +21,17 @@ export interface Tag {
   slug: string;
 }
 
+export interface Subcategory {
+  id: number;
+  name: string;
+  slug: string;
+  categoryId?: number;
+  description?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  category?: Pick<Category, 'id' | 'name' | 'slug'>;
+}
+
 export interface Post {
   id: number;
   title: string;
@@ -28,6 +39,8 @@ export interface Post {
   subtitle?: string;
   content?: string;
   category?: Category;
+  categories?: Category[];
+  subcategory?: Subcategory;
   tags?: Tag[];
   author?: Author;
   heroImage?: string;
@@ -38,6 +51,8 @@ export interface Post {
   publishedAt?: string;
   status?: 'Draft' | 'Published' | 'Archived';
   views?: number;
+  readAlso?: Post[];
+  readAlsoIds?: number[];
 }
 
 export interface MenuItem {
@@ -45,4 +60,5 @@ export interface MenuItem {
   label: string;
   url: string;
   order: number;
+  section: 'primary' | 'secondary';
 }

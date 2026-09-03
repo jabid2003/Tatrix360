@@ -13,9 +13,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'Title and slug cannot be empty.' }, { status: 400 });
   }
 
+  // Validate categories: accept either categoryIds array or single categoryId
+  const categoryIds = Array.isArray(body.categoryIds) ? body.categoryIds : [];
+  const hasCategories = categoryIds.length > 0 || body.categoryId;
+
   if (body.status === 'Published') {
-    if (!body.categoryId) {
-      return NextResponse.json({ ok: false, error: 'Category is required to publish.' }, { status: 400 });
+    if (!hasCategories) {
+      return NextResponse.json({ ok: false, error: 'At least one category is required to publish.' }, { status: 400 });
     }
     if (!body.authorName || !String(body.authorName).trim()) {
       return NextResponse.json({ ok: false, error: 'Author is required to publish.' }, { status: 400 });
@@ -30,7 +34,9 @@ export async function POST(request: Request) {
     slug: body.slug.trim(),
     subtitle: body.subtitle || undefined,
     content: body.content || undefined,
-    categoryId: body.categoryId,
+    categoryId: body.categoryId || categoryIds[0],
+    categoryIds: categoryIds,
+    subcategoryId: Number.isFinite(Number(body.subcategoryId)) ? Number(body.subcategoryId) : undefined,
     authorName: body.authorName || '',
     tagNames: Array.isArray(body.tagNames) ? body.tagNames : [],
     heroImage: body.heroImage || undefined,
@@ -39,6 +45,7 @@ export async function POST(request: Request) {
     seoDescription: body.seoDescription || undefined,
     featured: !!body.featured,
     status: body.status || 'Draft',
+    readAlsoIds: Array.isArray(body.readAlsoIds) ? body.readAlsoIds : undefined,
   };
 
   const result = await createPost(input);

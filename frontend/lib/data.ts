@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import type { Post, Category, Author, Tag, MenuItem } from '@/lib/types';
+import type { Post, Category, Author, Tag, MenuItem, Subcategory } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Build-time retry wrapper
@@ -59,6 +59,16 @@ interface TagRow {
   name: string;
   slug: string;
 }
+interface SubcategoryRow {
+  id: number;
+  name: string;
+  slug: string;
+  category_id: number | null;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
 interface PostRow {
   id: number;
   title: string;
@@ -75,9 +85,12 @@ interface PostRow {
   status: string;
   views: number;
   published_at: string | null;
+  read_also_ids: number[] | null;
   categories: CategoryRow | null;
   authors: AuthorRow | null;
   post_tags: { tags: TagRow }[];
+  post_categories: { categories: CategoryRow }[];
+  subcategories: SubcategoryRow | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,7 +111,33 @@ function mapAuthor(a: AuthorRow): Author {
 function mapTag(t: TagRow): Tag {
   return { id: t.id, name: t.name, slug: t.slug };
 }
+function mapSubcategory(s: SubcategoryRow): Subcategory {
+  return {
+    id: s.id,
+    name: s.name,
+    slug: s.slug,
+    categoryId: s.category_id ?? undefined,
+    description: s.description ?? undefined,
+    sortOrder: s.sort_order,
+    isActive: s.is_active,
+  };
+}
 function mapPost(p: PostRow): Post {
+  // Collect all categories: from post_categories join (multi) + fallback to single category_id
+  const allCategories: Category[] = [];
+
+  // From post_categories join table
+  if (p.post_categories && p.post_categories.length > 0) {
+    p.post_categories.forEach((pc) => {
+      if (pc.categories) allCategories.push(mapCategory(pc.categories));
+    });
+  }
+
+  // Fallback: if no post_categories, use the single category_id
+  if (allCategories.length === 0 && p.categories) {
+    allCategories.push(mapCategory(p.categories));
+  }
+
   return {
     id: p.id,
     title: p.title,
@@ -106,8 +145,10 @@ function mapPost(p: PostRow): Post {
     subtitle: p.subtitle ?? undefined,
     content: p.content ?? undefined,
     category: p.categories ? mapCategory(p.categories) : undefined,
+    categories: allCategories.length > 0 ? allCategories : undefined,
     author: p.authors ? mapAuthor(p.authors) : undefined,
     tags: p.post_tags ? p.post_tags.map((pt) => mapTag(pt.tags)) : [],
+    subcategory: p.subcategories ? mapSubcategory(p.subcategories) : undefined,
     heroImage: p.hero_image ?? undefined,
     postType: p.post_type as Post['postType'] | undefined,
     seoTitle: p.seo_title ?? undefined,
@@ -116,6 +157,7 @@ function mapPost(p: PostRow): Post {
     publishedAt: p.published_at ?? undefined,
     status: p.status as Post['status'] | undefined,
     views: p.views,
+    readAlsoIds: p.read_also_ids ?? undefined,
   };
 }
 
@@ -131,7 +173,9 @@ export async function getPosts(opts: { featured?: boolean; pageSize?: number; ca
         *,
         categories!posts_category_id_fkey (*),
         authors!posts_author_id_fkey (*),
-        post_tags ( tags (*) )
+        post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
       `)
       .eq('status', 'Published')
       .order('published_at', { ascending: false });
@@ -160,7 +204,9 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
         *,
         categories!posts_category_id_fkey (*),
         authors!posts_author_id_fkey (*),
-        post_tags ( tags (*) )
+        post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
       `)
       .eq('slug', slug)
       .maybeSingle();
@@ -256,15 +302,19 @@ function slugify(input: string): string {
     .replace(/(^-|-$)+/g, '');
 }
 
+function escapeIlike(s: string): string {
+  return s.replace(/[%_\\]/g, '\\$&');
+}
+
 async function findOrCreateAuthorId(name: string): Promise<number | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
 
   const { data: existing } = await supabaseAdmin
-    .from('authors')
-    .select('id')
-    .ilike('name', trimmed)
-    .maybeSingle();
+      .from('authors')
+      .select('id')
+      .ilike('name', escapeIlike(trimmed))
+      .maybeSingle();
 
   if (existing) return existing.id;
 
@@ -291,7 +341,7 @@ async function findOrCreateTagIds(names: string[]): Promise<number[]> {
     const { data: existing } = await supabaseAdmin
       .from('tags')
       .select('id')
-      .ilike('name', trimmed)
+      .ilike('name', escapeIlike(trimmed))
       .maybeSingle();
 
     if (existing) {
@@ -316,14 +366,91 @@ async function findOrCreateTagIds(names: string[]): Promise<number[]> {
 }
 
 async function syncPostTags(postId: number, tagIds: number[]): Promise<void> {
-  // Simplest way to keep post_tags in sync on update: wipe this post's
-  // rows and reinsert. Fine at this scale (a handful of tags per post).
+  // Keep post_tags in sync with the form's multi-select: remove this post's
+  // existing relations, then re-insert the new set. De-dupe via Set so the
+  // same tag picked twice can't violate the (post_id, tag_id) primary key.
   await supabaseAdmin.from('post_tags').delete().eq('post_id', postId);
-  if (tagIds.length > 0) {
-    await supabaseAdmin
+  const uniqueTagIds = [...new Set(tagIds)];
+  if (uniqueTagIds.length > 0) {
+    const { error } = await supabaseAdmin
       .from('post_tags')
-      .insert(tagIds.map((tagId) => ({ post_id: postId, tag_id: tagId })));
+      .insert(uniqueTagIds.map((tagId) => ({ post_id: postId, tag_id: tagId })));
+    if (error) console.error('[supabase] syncPostTags error:', error.message);
   }
+}
+
+async function syncPostCategories(postId: number, categoryIds: number[]): Promise<void> {
+  await supabaseAdmin.from('post_categories').delete().eq('post_id', postId);
+  const uniqueCategoryIds = [...new Set(categoryIds)];
+  if (uniqueCategoryIds.length > 0) {
+    const { error } = await supabaseAdmin
+      .from('post_categories')
+      .insert(uniqueCategoryIds.map((categoryId) => ({ post_id: postId, category_id: categoryId })));
+    if (error) console.error('[supabase] syncPostCategories error:', error.message);
+  }
+}
+
+async function findOrCreateCategoryId(name: string): Promise<number | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  const { data: existing } = await supabaseAdmin
+      .from('categories')
+      .select('id')
+      .ilike('name', escapeIlike(trimmed))
+      .maybeSingle();
+
+  if (existing) return existing.id;
+
+  const { data: created, error } = await supabaseAdmin
+    .from('categories')
+    .insert({ name: trimmed, slug: slugify(trimmed) })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('[supabase] findOrCreateCategoryId insert error:', error.message);
+    return null;
+  }
+  return created.id;
+}
+
+async function findOrCreateCategoryIds(names: string[]): Promise<number[]> {
+  const ids: number[] = [];
+  for (const name of names) {
+    const id = await findOrCreateCategoryId(name);
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
+export async function createCategory(name: string): Promise<{ ok: boolean; category?: Category; error?: string }> {
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: 'Category name is required.' };
+
+  // Check if exists
+  const { data: existing } = await supabaseAdmin
+      .from('categories')
+      .select('*')
+      .ilike('name', escapeIlike(trimmed))
+      .maybeSingle();
+
+  if (existing) {
+    return { ok: true, category: mapCategory(existing as CategoryRow) };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('categories')
+    .insert({ name: trimmed, slug: slugify(trimmed) })
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('[supabase] createCategory error:', error.message);
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, category: mapCategory(data as CategoryRow) };
 }
 
 export interface PostInput {
@@ -331,7 +458,9 @@ export interface PostInput {
   slug: string;
   subtitle?: string;
   content?: string;
-  categoryId: number;
+  categoryId?: number;
+  categoryIds?: number[];
+  subcategoryId?: number;
   authorName: string;
   tagNames: string[];
   heroImage?: string;
@@ -342,6 +471,7 @@ export interface PostInput {
   status: NonNullable<Post['status']>;
   /** ISO string. If omitted and status is 'Published', defaults to now. */
   publishedAt?: string | null;
+  readAlsoIds?: number[];
 }
 
 export async function createPost(
@@ -350,6 +480,13 @@ export async function createPost(
   const authorId = await findOrCreateAuthorId(input.authorName);
   const tagIds = await findOrCreateTagIds(input.tagNames);
 
+  // Determine category IDs: use categoryIds if provided, fallback to single categoryId
+  const categoryIds = input.categoryIds && input.categoryIds.length > 0
+    ? input.categoryIds
+    : input.categoryId
+      ? [input.categoryId]
+      : [];
+
   const { data, error } = await supabaseAdmin
     .from('posts')
     .insert({
@@ -357,7 +494,8 @@ export async function createPost(
       slug: input.slug,
       subtitle: input.subtitle || null,
       content: input.content || null,
-      category_id: input.categoryId,
+      category_id: categoryIds[0] ?? null,
+      subcategory_id: input.subcategoryId ?? null,
       author_id: authorId,
       hero_image: input.heroImage || null,
       post_type: input.postType || null,
@@ -368,6 +506,7 @@ export async function createPost(
       published_at:
         input.publishedAt ?? (input.status === 'Published' ? new Date().toISOString() : null),
       views: 0,
+      read_also_ids: input.readAlsoIds && input.readAlsoIds.length > 0 ? input.readAlsoIds : null,
     })
     .select('id')
     .single();
@@ -378,6 +517,7 @@ export async function createPost(
   }
 
   await syncPostTags(data.id, tagIds);
+  await syncPostCategories(data.id, categoryIds);
 
   const post = await getPostBySlug(input.slug);
   return { ok: true, post: post ?? undefined };
@@ -390,6 +530,13 @@ export async function updatePost(
   const authorId = await findOrCreateAuthorId(input.authorName);
   const tagIds = await findOrCreateTagIds(input.tagNames);
 
+  // Determine category IDs: use categoryIds if provided, fallback to single categoryId
+  const categoryIds = input.categoryIds && input.categoryIds.length > 0
+    ? input.categoryIds
+    : input.categoryId
+      ? [input.categoryId]
+      : [];
+
   const { error } = await supabaseAdmin
     .from('posts')
     .update({
@@ -397,7 +544,8 @@ export async function updatePost(
       slug: input.slug,
       subtitle: input.subtitle || null,
       content: input.content || null,
-      category_id: input.categoryId,
+      category_id: categoryIds[0] ?? null,
+      subcategory_id: input.subcategoryId ?? null,
       author_id: authorId,
       hero_image: input.heroImage || null,
       post_type: input.postType || null,
@@ -407,6 +555,7 @@ export async function updatePost(
       status: input.status,
       published_at:
         input.publishedAt ?? (input.status === 'Published' ? new Date().toISOString() : null),
+      read_also_ids: input.readAlsoIds && input.readAlsoIds.length > 0 ? input.readAlsoIds : null,
     })
     .eq('id', id);
 
@@ -416,6 +565,7 @@ export async function updatePost(
   }
 
   await syncPostTags(id, tagIds);
+  await syncPostCategories(id, categoryIds);
 
   const post = await getPostBySlug(input.slug);
   return { ok: true, post: post ?? undefined };
@@ -426,6 +576,7 @@ export async function deletePost(id: number): Promise<{ ok: boolean; error?: str
   // CASCADE configured for post_tags.post_id — explicit here is cheap and
   // avoids relying on schema details we haven't verified.
   await supabaseAdmin.from('post_tags').delete().eq('post_id', id);
+  await supabaseAdmin.from('post_categories').delete().eq('post_id', id);
 
   const { error } = await supabaseAdmin.from('posts').delete().eq('id', id);
 
@@ -443,7 +594,9 @@ export async function getPostById(id: number): Promise<Post | null> {
       *,
       categories!posts_category_id_fkey (*),
       authors!posts_author_id_fkey (*),
-      post_tags ( tags (*) )
+      post_tags ( tags (*) ),
+      post_categories ( categories (*) ),
+        subcategories ( * )
     `)
     .eq('id', id)
     .maybeSingle();
@@ -466,7 +619,9 @@ export async function getAdminPosts(): Promise<Post[]> {
       *,
       categories!posts_category_id_fkey (*),
       authors!posts_author_id_fkey (*),
-      post_tags ( tags (*) )
+      post_tags ( tags (*) ),
+      post_categories ( categories (*) ),
+        subcategories ( * )
     `)
     .order('id', { ascending: false })
     .limit(200);
@@ -485,7 +640,9 @@ export async function getTrendingPosts(limit = 5): Promise<Post[]> {
       *,
       categories!posts_category_id_fkey (*),
       authors!posts_author_id_fkey (*),
-      post_tags ( tags (*) )
+      post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
     `)
     .eq('status', 'Published')
     .order('views', { ascending: false })
@@ -542,13 +699,214 @@ export async function getMenu(): Promise<MenuItem[]> {
       console.error('[supabase] getMenu error:', error.message);
       return [];
     }
-    return (data as (MenuItem & { sort_order: number })[]).map((m) => ({
+
+    const PRIMARY_URLS = ['/', '/category/ai', '/category/news', '/category/gadgets', '/category/do-you-know', '/about'];
+
+    return (data as (MenuItem & { sort_order: number; section?: string })[]).map((m) => ({
       id: m.id,
       label: m.label,
       url: m.url,
       order: m.sort_order,
+      section: (m.section as 'primary' | 'secondary') ?? (PRIMARY_URLS.includes(m.url) ? 'primary' : 'secondary'),
     }));
   }, { label: 'getMenu' });
+}
+
+export async function getMenuBySection(section: 'primary' | 'secondary'): Promise<MenuItem[]> {
+  const all = await getMenu();
+  return all.filter((m) => m.section === section);
+}
+
+// ---------------------------------------------------------------------------
+// Subcategories
+// ---------------------------------------------------------------------------
+
+interface SubcategoryWithCategoryRow extends SubcategoryRow {
+  categories?: CategoryRow | null;
+}
+
+export async function getSubcategories(includeInactive = false): Promise<Subcategory[]> {
+  return retry(async () => {
+    let query = supabase
+      .from('subcategories')
+      .select(`
+        *,
+        categories (id, name, slug)
+      `)
+      .order('sort_order', { ascending: true });
+
+    if (!includeInactive) query = query.eq('is_active', true);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[supabase] getSubcategories error:', error.message);
+      return [];
+    }
+
+    return (data as unknown as SubcategoryWithCategoryRow[]).map((s) => ({
+      ...mapSubcategory(s),
+      category: s.categories ? { id: s.categories.id, name: s.categories.name, slug: s.categories.slug } : undefined,
+    }));
+  }, { label: 'getSubcategories' });
+}
+
+export async function getSubcategoryBySlug(slug: string): Promise<Subcategory | null> {
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('subcategories')
+      .select(`
+        *,
+        categories (id, name, slug)
+      `)
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    const s = data as unknown as SubcategoryWithCategoryRow;
+    return {
+      ...mapSubcategory(s),
+      category: s.categories ? { id: s.categories.id, name: s.categories.name, slug: s.categories.slug } : undefined,
+    };
+  }, { label: 'getSubcategoryBySlug' });
+}
+
+export async function getSubcategoriesByCategory(categorySlug: string): Promise<Subcategory[]> {
+  return retry(async () => {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+    if (!cat) return [];
+
+    const { data, error } = await supabase
+      .from('subcategories')
+      .select(`
+        *,
+        categories (id, name, slug)
+      `)
+      .eq('category_id', cat.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      console.error('[supabase] getSubcategoriesByCategory error:', error.message);
+      return [];
+    }
+
+    return (data as unknown as SubcategoryWithCategoryRow[]).map((s) => ({
+      ...mapSubcategory(s),
+      category: s.categories ? { id: s.categories.id, name: s.categories.name, slug: s.categories.slug } : undefined,
+    }));
+  }, { label: 'getSubcategoriesByCategory' });
+}
+
+export interface SubcategoryInput {
+  name: string;
+  slug: string;
+  categoryId: number;
+  description?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export async function createSubcategory(input: SubcategoryInput): Promise<{ ok: boolean; subcategory?: Subcategory; error?: string }> {
+  const { data, error } = await supabaseAdmin
+    .from('subcategories')
+    .insert({
+      name: input.name.trim(),
+      slug: input.slug.trim(),
+      category_id: input.categoryId,
+      description: input.description?.trim() || null,
+      sort_order: input.sortOrder ?? 0,
+      is_active: input.isActive ?? true,
+    })
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    console.error('[supabase] createSubcategory error:', error?.message);
+    return { ok: false, error: error?.message || 'Failed to create subcategory.' };
+  }
+  return { ok: true, subcategory: mapSubcategory(data as SubcategoryRow) };
+}
+
+export async function updateSubcategory(
+  id: number,
+  input: Partial<SubcategoryInput>
+): Promise<{ ok: boolean; error?: string }> {
+  const patch: Record<string, unknown> = {};
+  if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.slug !== undefined) patch.slug = input.slug.trim();
+  if (input.categoryId !== undefined) patch.category_id = input.categoryId;
+  if (input.description !== undefined) patch.description = input.description.trim() || null;
+  if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
+  if (input.isActive !== undefined) patch.is_active = input.isActive;
+  patch.updated_at = new Date().toISOString();
+
+  const { error } = await supabaseAdmin.from('subcategories').update(patch).eq('id', id);
+  if (error) {
+    console.error('[supabase] updateSubcategory error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+export async function deleteSubcategory(id: number): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabaseAdmin.from('subcategories').delete().eq('id', id);
+  if (error) {
+    console.error('[supabase] deleteSubcategory error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+export async function getPostsBySubcategory(
+  subcategorySlug: string,
+  limit = 5,
+  offset = 0
+): Promise<{ posts: Post[]; total: number }> {
+  return retry(async () => {
+    const { data: sub } = await supabase
+      .from('subcategories')
+      .select('id')
+      .eq('slug', subcategorySlug)
+      .maybeSingle();
+
+    if (!sub) return { posts: [], total: 0 };
+
+    const [{ data, error, count }, { error: countError, count: totalCount }] = await Promise.all([
+      supabase
+        .from('posts')
+        .select(`
+          *,
+          categories!posts_category_id_fkey (*),
+          authors!posts_author_id_fkey (*),
+          post_tags ( tags (*) ),
+          post_categories ( categories (*) ),
+          subcategories ( * )
+        `, { count: 'exact' })
+        .eq('subcategory_id', sub.id)
+        .eq('status', 'Published')
+        .order('published_at', { ascending: false })
+        .range(offset, offset + limit - 1),
+      supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('subcategory_id', sub.id)
+        .eq('status', 'Published'),
+    ]);
+
+    if (error || countError) {
+      console.error('[supabase] getPostsBySubcategory error:', error?.message, countError?.message);
+      return { posts: [], total: 0 };
+    }
+    return {
+      posts: (data as unknown as PostRow[]).map(mapPost),
+      total: totalCount ?? count ?? 0,
+    };
+  }, { label: 'getPostsBySubcategory' });
 }
 
 export async function searchPosts(query: string): Promise<Post[]> {
@@ -561,14 +919,274 @@ export async function searchPosts(query: string): Promise<Post[]> {
       *,
       categories!posts_category_id_fkey (*),
       authors!posts_author_id_fkey (*),
-      post_tags ( tags (*) )
+      post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
     `)
     .eq('status', 'Published')
-    .ilike('title', `%${q}%`)
+    .ilike('title', `%${escapeIlike(q)}%`)
     .limit(20);
 
   if (error) {
     console.error('[supabase] searchPosts error:', error.message);
+    return [];
+  }
+  return (data as unknown as PostRow[]).map(mapPost);
+}
+
+// ---------------------------------------------------------------------------
+// OS page: fetch posts tagged with a specific OS tag
+// ---------------------------------------------------------------------------
+
+export async function getPostsByTag(
+  tagSlug: string,
+  page = 1,
+  pageSize = 3
+): Promise<{ posts: Post[]; total: number }> {
+  return retry(async () => {
+    // First get the tag id
+    const { data: tag } = await supabase
+      .from('tags')
+      .select('id')
+      .eq('slug', tagSlug)
+      .maybeSingle();
+
+    if (!tag) return { posts: [], total: 0 };
+
+    // Get total count
+    const { count } = await supabase
+      .from('post_tags')
+      .select('*', { count: 'exact', head: true })
+      .eq('tag_id', tag.id);
+
+    // Get paginated posts
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data: postTags, error } = await supabase
+      .from('post_tags')
+      .select('post_id')
+      .eq('tag_id', tag.id)
+      .order('post_id', { ascending: false })
+      .range(from, to);
+
+    if (error || !postTags || postTags.length === 0) {
+      return { posts: [], total: count ?? 0 };
+    }
+
+    const postIds = postTags.map((pt) => pt.post_id);
+
+    const { data: posts } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        categories!posts_category_id_fkey (*),
+        authors!posts_author_id_fkey (*),
+        post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
+      `)
+      .eq('status', 'Published')
+      .in('id', postIds)
+      .order('published_at', { ascending: false });
+
+    return {
+      posts: (posts as unknown as PostRow[]).map(mapPost),
+      total: count ?? 0,
+    };
+  }, { label: `getPostsByTag:${tagSlug}` });
+}
+
+// Initial load for OS page: 1 post per OS tag
+const OS_TAGS = ['android', 'ios', 'windows', 'macos', 'linux', 'other-os'];
+
+export async function getInitialOSPosts(): Promise<
+  { tag: string; tagName: string; posts: Post[] }[]
+> {
+  return retry(async () => {
+    const results = await Promise.all(
+      OS_TAGS.map(async (tagSlug) => {
+        const tagData = await supabase
+          .from('tags')
+          .select('name')
+          .eq('slug', tagSlug)
+          .maybeSingle();
+
+        const { posts } = await getPostsByTag(tagSlug, 1, 1);
+        return {
+          tag: tagSlug,
+          tagName: tagData?.data?.name ?? tagSlug,
+          posts,
+        };
+      })
+    );
+    return results;
+  }, { label: 'getInitialOSPosts' });
+}
+
+// ---------------------------------------------------------------------------
+// Sub-nav filtering: fetch posts by post_type
+// ---------------------------------------------------------------------------
+
+export async function getPostsByType(
+  postType: string,
+  page = 1,
+  pageSize = 3
+): Promise<{ posts: Post[]; total: number }> {
+  return retry(async () => {
+    const { count } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'Published')
+      .eq('post_type', postType);
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        categories!posts_category_id_fkey (*),
+        authors!posts_author_id_fkey (*),
+        post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
+      `)
+      .eq('status', 'Published')
+      .eq('post_type', postType)
+      .order('published_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('[supabase] getPostsByType error:', error.message);
+      return { posts: [], total: 0 };
+    }
+
+    return {
+      posts: (data as unknown as PostRow[]).map(mapPost),
+      total: count ?? 0,
+    };
+  }, { label: `getPostsByType:${postType}` });
+}
+
+// Initial load for mobile/laptop pages: 1 post per type
+const SUB_NAV_TYPES = ['News', 'Review', 'Guide', 'Opinion'];
+
+export async function getInitialTypePosts(): Promise<
+  { type: string; posts: Post[] }[]
+> {
+  return retry(async () => {
+    const results = await Promise.all(
+      SUB_NAV_TYPES.map(async (postType) => {
+        const { posts } = await getPostsByType(postType, 1, 1);
+        return { type: postType, posts };
+      })
+    );
+    return results;
+  }, { label: 'getInitialTypePosts' });
+}
+
+// ---------------------------------------------------------------------------
+// Featured posts
+// ---------------------------------------------------------------------------
+
+export async function getFeaturedPosts(pageSize = 6): Promise<Post[]> {
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        categories!posts_category_id_fkey (*),
+        authors!posts_author_id_fkey (*),
+        post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
+      `)
+      .eq('status', 'Published')
+      .eq('featured', true)
+      .order('published_at', { ascending: false })
+      .limit(pageSize);
+
+    if (error) {
+      console.error('[supabase] getFeaturedPosts error:', error.message);
+      return [];
+    }
+    return (data as unknown as PostRow[]).map(mapPost);
+  }, { label: 'getFeaturedPosts' });
+}
+
+// ---------------------------------------------------------------------------
+// Posts by category slug with pagination
+// ---------------------------------------------------------------------------
+
+export async function getPostsByCategory(
+  categorySlug: string,
+  page = 1,
+  pageSize = 6
+): Promise<{ posts: Post[]; total: number }> {
+  return retry(async () => {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+
+    if (!cat) return { posts: [], total: 0 };
+
+    const { count } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'Published')
+      .eq('category_id', cat.id);
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        categories!posts_category_id_fkey (*),
+        authors!posts_author_id_fkey (*),
+        post_tags ( tags (*) ),
+        post_categories ( categories (*) ),
+        subcategories ( * )
+      `)
+      .eq('status', 'Published')
+      .eq('category_id', cat.id)
+      .order('published_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('[supabase] getPostsByCategory error:', error.message);
+      return { posts: [], total: 0 };
+    }
+
+    return {
+      posts: (data as unknown as PostRow[]).map(mapPost),
+      total: count ?? 0,
+    };
+  }, { label: `getPostsByCategory:${categorySlug}` });
+}
+
+export async function getPostsByIds(ids: number[]): Promise<Post[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      categories!posts_category_id_fkey (*),
+      authors!posts_author_id_fkey (*),
+      post_tags ( tags (*) ),
+      post_categories ( categories (*) ),
+        subcategories ( * )
+    `)
+    .in('id', ids)
+    .eq('status', 'Published');
+
+  if (error) {
+    console.error('[supabase] getPostsByIds error:', error.message);
     return [];
   }
   return (data as unknown as PostRow[]).map(mapPost);

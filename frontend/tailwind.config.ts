@@ -18,6 +18,7 @@ const config: Config = {
         success: { DEFAULT: 'hsl(var(--success))', foreground: '0 0% 100%' },
         warning: { DEFAULT: 'hsl(var(--warning))', foreground: '0 0% 100%' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
       },
       fontFamily: {
   sans: [
@@ -52,6 +53,7 @@ const config: Config = {
         'in-fade': 'in-fade 0.4s ease-out both',
         'scale-in': 'scale-in 0.3s ease-out both',
         'loading-bar': 'loading-bar 0.8s ease-out',
+        'slide-in-expand': 'slide-in-expand 0.3s ease-out both',
       },
       keyframes: {
         shimmer: {
@@ -75,6 +77,10 @@ const config: Config = {
           '50%': { transform: 'scaleX(1)', transformOrigin: 'left' },
           '51%': { transformOrigin: 'right' },
           '100%': { transform: 'scaleX(0)', transformOrigin: 'right' },
+        },
+        'slide-in-expand': {
+          from: { maxHeight: '0', opacity: '0' },
+          to: { maxHeight: '300px', opacity: '1' },
         },
       },
     },

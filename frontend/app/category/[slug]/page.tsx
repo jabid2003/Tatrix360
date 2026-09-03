@@ -1,15 +1,15 @@
 import { notFound } from 'next/navigation';
-import { getPosts, getCategories } from '@/lib/data';
+import Link from 'next/link';
+import { getPosts, getCategories, getSubcategoriesByCategory } from '@/lib/data';
 import { PostCard } from '@/components/site/post-card';
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const categories = await getCategories();
   return categories.map((category) => ({ slug: category.slug }));
 }
-
-export const fallback = 'blocking';
 
 export async function generateMetadata({
   params,
@@ -35,9 +35,10 @@ export default async function CategoryPage({
 }: {
   params: { slug: string };
 }) {
-  const [posts, categories] = await Promise.all([
+  const [posts, categories, subcategories] = await Promise.all([
     getPosts({ categorySlug: params.slug, pageSize: 20 }),
     getCategories(),
+    getSubcategoriesByCategory(params.slug),
   ]);
 
   const category = categories.find((item) => item.slug === params.slug);
@@ -85,6 +86,30 @@ export default async function CategoryPage({
           )}
         </header>
 
+        {/* Menus / submenus section — View-all lands here */}
+        {subcategories.length > 0 && (
+          <section className="mb-10" aria-label="Sections">
+            <p className="section-label mb-3">Browse {category.name}</p>
+            <nav className="flex flex-wrap gap-2.5" aria-label="Subcategories">
+              {subcategories.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`/category/${category.slug}/${sub.slug}`}
+                  className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  {sub.name}
+                </Link>
+              ))}
+              <Link
+                href={`/category/${category.slug}`}
+                className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                All {category.name}
+              </Link>
+            </nav>
+          </section>
+        )}
+
         {posts.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             {posts.map((post) => (
@@ -95,6 +120,33 @@ export default async function CategoryPage({
           <div className="rounded-2xl border border-dashed border-border px-5 py-16 text-center">
             <p className="text-muted-foreground">No articles in this category yet.</p>
           </div>
+        )}
+
+        {/* Read-more / explore links — before the footer ad */}
+        {categories.length > 1 && (
+          <section className="mt-14 border-t border-border pt-8" aria-label="Keep reading">
+            <p className="section-label mb-4">Keep reading</p>
+            <div className="flex flex-wrap gap-2.5">
+              {categories.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/category/${c.slug}`}
+                  className="inline-flex items-center rounded-full border border-border px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  {c.name}
+                </Link>
+              ))}
+              {subcategories.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`/category/${category.slug}/${sub.slug}`}
+                  className="inline-flex items-center rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  {category.name} · {sub.name}
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
       </main>
     </>

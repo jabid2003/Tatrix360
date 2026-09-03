@@ -1,5 +1,7 @@
+export const revalidate = 3600;
+
 import type { Metadata } from 'next';
-import { NewsletterBox } from '@/components/site/newsletter-box';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Subscribe',
@@ -21,9 +23,15 @@ export default function SubscribePage() {
       <p className="mt-2 text-lg text-muted-foreground">
         Join thousands of readers getting the sharpest tech reporting in their inbox every week.
       </p>
-      <div className="mt-8">
-        <NewsletterBox />
+      <div className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <p className="text-sm text-muted-foreground">
+          Subscribe via the newsletter form in the footer on any page — no spam, unsubscribe anytime.
+        </p>
+        <Link href="/#footer-newsletter" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+          Go to footer
+        </Link>
       </div>
     </div>
   );
 }
+
