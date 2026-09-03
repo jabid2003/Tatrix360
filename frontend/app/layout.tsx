@@ -3,18 +3,20 @@ import './globals.css';
 
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
-import { SiteHeader } from '@/components/site/site-header';
+import Navbar from '@/components/site/navbar';
 import { SiteFooter } from '@/components/site/site-footer';
 import { RouteTransition } from '@/components/site/route-transition';
 import { NavigationEvents } from '@/components/site/navigation-events';
 import { Providers } from './providers';
-import { getMenu } from '@/lib/data';
+import { AdBanner } from '@/components/site/ad-banner';
 
 import {
   inter,
   playfair,
   jetbrainsMono,
 } from './fonts';
+
+export const revalidate = 60;
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -72,8 +74,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const menu = await getMenu();
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -82,12 +82,14 @@ export default async function RootLayout({
         <Providers>
           <NavigationEvents />
 
-          <SiteHeader menu={menu} />
+          <Navbar />
+          <AdBanner placement="header" adSlot="header-leaderboard" />
 
           <main className="flex-1">
             <RouteTransition>{children}</RouteTransition>
           </main>
 
+          <AdBanner placement="footer" adSlot="footer-leaderboard" />
           <SiteFooter />
         </Providers>
 

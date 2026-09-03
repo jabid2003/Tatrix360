@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { ADMIN_SESSION_COOKIE, verifySessionToken } from '@/lib/session';
 import { LogoutButton } from '@/components/site/admin/logout-button';
 
@@ -27,11 +28,29 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-background">
       {isLoggedIn && (
-        <header className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6">
-          <span className="text-sm font-semibold text-muted-foreground">
-            Tatrix360 Admin
-          </span>
-          <LogoutButton />
+        <header className="border-b border-border">
+          <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+            <span className="text-sm font-semibold text-muted-foreground">
+              Tatrix360 Admin
+            </span>
+            <LogoutButton />
+          </div>
+          <nav className="flex gap-1 px-4 pb-3 sm:px-6" aria-label="Admin navigation">
+            {[
+              { href: '/admin', label: 'Articles' },
+              { href: '/admin/posts/new', label: 'New Article' },
+              { href: '/admin/categories', label: 'Categories' },
+              { href: '/admin/navbar', label: 'Navbar' },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </header>
       )}
 

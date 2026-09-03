@@ -14,6 +14,7 @@ export function SearchView() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
 
     const search = async () => {
@@ -21,7 +22,9 @@ export function SearchView() {
       setError('');
 
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error('Search request failed');
         const data = await res.json();
 
@@ -29,7 +32,8 @@ export function SearchView() {
           setResults(data.results || []);
           setSuggestions(data.suggestions || []);
         }
-      } catch {
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
         if (!cancelled) {
           setResults([]);
           setSuggestions([]);
@@ -40,10 +44,12 @@ export function SearchView() {
       }
     };
 
+    // Debounce: 250ms for typed queries, immediate for empty (initial suggestions)
     const timeout = setTimeout(search, query.trim() ? 250 : 0);
 
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(timeout);
     };
   }, [query]);

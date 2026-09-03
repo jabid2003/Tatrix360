@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { getPosts } from '@/lib/data';
 import { PostCard } from '@/components/site/post-card';
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: 'Latest',
   description: 'The latest stories, guides, reviews, and explainers from Tatrix360.',

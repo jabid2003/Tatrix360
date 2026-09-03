@@ -2,10 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  // Skip type-checking and linting during `next build`.
-  // Speeds up the build significantly and avoids the build hanging on
-  // transient issues (Supabase timeouts, etc.) that are irrelevant to
-  // the output.  Run `tsc --noEmit` and `next lint` separately in CI.
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -15,11 +11,17 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'images.pexels.com' },
       { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'images.pexels.com' },
+      { protocol: 'https', hostname: '*.pexels.com' },
     ],
-    // Allow longer image optimisation during build
+    formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60,
+  },
+
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
   },
 };
 module.exports = nextConfig;

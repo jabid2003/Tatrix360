@@ -1,5 +1,6 @@
+export const revalidate = 3600;
+
 import type { Metadata } from 'next';
-import { NewsletterBox } from '@/components/site/newsletter-box';
 import { Zap, Shield, PenTool } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -76,13 +77,7 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section
-        aria-labelledby="newsletter-heading"
-        className="mt-12 rounded-2xl border border-border bg-card p-5 sm:p-6"
-      >
-        <h2 id="newsletter-heading" className="sr-only">Subscribe to the Tatrix360 newsletter</h2>
-        <NewsletterBox />
-      </section>
+
     </main>
   );
 }

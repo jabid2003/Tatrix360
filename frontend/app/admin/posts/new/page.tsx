@@ -1,8 +1,14 @@
-import { getCategories, getAuthors } from '@/lib/data';
+import { getCategories, getAuthors, getAdminPosts, getTags, getSubcategories } from '@/lib/data';
 import { ArticleForm } from '@/components/site/admin/article-form';
 
 export default async function NewArticlePage() {
-  const [categories, authors] = await Promise.all([getCategories(), getAuthors()]);
+  const [categories, authors, allPosts, allTags, subcategories] = await Promise.all([
+    getCategories(),
+    getAuthors(),
+    getAdminPosts(),
+    getTags(),
+    getSubcategories(),
+  ]);
 
   return (
     <main className="container-page max-w-3xl py-8 sm:py-12">
@@ -12,8 +18,11 @@ export default async function NewArticlePage() {
 
       <ArticleForm
         categories={categories}
+        subcategories={subcategories}
         authorNames={authors.map((a) => a.name)}
         mode="create"
+        allPosts={allPosts}
+        allTags={allTags}
       />
     </main>
   );

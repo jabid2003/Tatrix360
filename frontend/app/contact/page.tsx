@@ -1,3 +1,5 @@
+export const revalidate = 3600;
+
 import type { Metadata } from 'next';
 import { ContactForm } from '@/components/site/contact-form';
 
@@ -15,3 +17,4 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return <ContactForm />;
 }
+
