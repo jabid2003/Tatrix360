@@ -186,21 +186,19 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
         </div>
       </div>
 
-      {/* Mobile drawer — rendered outside header stacking context */}
-      {mobile && (
-        <>
-          {/* Backdrop */}
-          <button
-            type="button"
-            aria-label="Close menu"
-            onClick={() => setMobile(false)}
-            className="fixed inset-0 z-[59] bg-black/30 lg:hidden"
-          />
-          <div
-            ref={mobileRef}
-            className="fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden"
-            style={{ top: '88px' }}
-          >
+      {/* Mobile drawer — always mounted for smooth transitions */}
+      <button
+        type="button"
+        aria-label="Close menu"
+        onClick={() => setMobile(false)}
+        className={`drawer-backdrop fixed inset-0 z-[59] bg-black/30 lg:hidden ${mobile ? 'open' : ''}`}
+      />
+      <div
+        ref={mobileRef}
+        className={`drawer-panel fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden ${mobile ? 'open' : ''}`}
+        style={{ top: '88px' }}
+        aria-hidden={!mobile}
+      >
             <div className="flex-1 overflow-y-auto">
               {/* Search */}
               <div className="border-b p-3">
@@ -297,8 +295,6 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
               Tatrix360 — Tech, decoded.
             </div>
           </div>
-        </>
-      )}
     </header>
   );
 }
