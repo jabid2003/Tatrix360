@@ -18,7 +18,7 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
 
   useEffect(() => {
     if (count < 2 || paused) return;
-    const id = setInterval(next, 2000);
+    const id = setInterval(next, 3000);
     return () => clearInterval(id);
   }, [count, next, paused]);
 

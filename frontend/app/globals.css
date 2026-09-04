@@ -155,26 +155,26 @@
   .stagger-5 { animation-delay: 0.25s; }
   .stagger-6 { animation-delay: 0.3s; }
 
-  /* ── Smooth dropdown / mega-menu ── */
+  /* ── Smooth dropdown / mega-menu — slide up from below ── */
   .dropdown-panel {
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-4px) scale(0.98);
-    transform-origin: top center;
+    transform: translateY(12px);
+    transform-origin: bottom center;
     transition:
       opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-      visibility 0s 0.2s;
+      transform 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s 0.25s;
     pointer-events: none;
   }
   .group:hover > .dropdown-panel,
   .group:focus-within > .dropdown-panel {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     transition:
       opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.25s cubic-bezier(0.32, 0.72, 0, 1),
       visibility 0s 0s;
     pointer-events: auto;
   }
