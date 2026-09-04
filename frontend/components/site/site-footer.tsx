@@ -1,9 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Twitter, Github, Zap, Mail } from 'lucide-react';
 
 export function SiteFooter() {
+  const [year, setYear] = useState<number | null>(null);
+  useEffect(() => { setYear(new Date().getFullYear()); }, []);
+
   return (
     <footer className="mt-20 border-t border-border bg-muted/30">
       {/* Footer Links */}
@@ -66,9 +70,9 @@ export function SiteFooter() {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Tatrix360. Tech, decoded.
+            &copy; {year ?? '\u00A0'} Tatrix360. Tech, decoded.
           </p>
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-muted-foreground/80">
             Built with care for readers who care about tech.
           </p>
         </div>

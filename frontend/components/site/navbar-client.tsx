@@ -198,6 +198,7 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
         className={`drawer-panel fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden ${mobile ? 'open' : ''}`}
         style={{ top: '88px' }}
         aria-hidden={!mobile}
+        inert={!mobile || undefined}
       >
             <div className="flex-1 overflow-y-auto">
               {/* Search */}

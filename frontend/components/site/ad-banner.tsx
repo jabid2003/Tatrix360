@@ -17,7 +17,7 @@ const DIMENSIONS: Record<Placement, { desktop: string; mobile: string; minHeight
 
 function AdLabel() {
   return (
-    <p className="flex items-center justify-center gap-1.5 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">
+    <p className="flex items-center justify-center gap-1.5 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
       <Megaphone className="h-3 w-3" />
       Advertisement
     </p>

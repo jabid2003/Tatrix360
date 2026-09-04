@@ -193,7 +193,7 @@ export default async function ArticlePage({
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 72rem"
+                sizes="(max-width: 1024px) 100vw, 48rem"
                 placeholder="blur"
                 blurDataURL={getImageBlurUrl(post.heroImage)}
               />
@@ -213,7 +213,7 @@ export default async function ArticlePage({
                       {post.subtitle}
                     </p>
                   )}
-                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-white/70 lg:text-sm">
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-white/80 lg:text-sm">
                     {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
                     <span>{formatDate(post.publishedAt)}</span>
                   </div>
@@ -229,7 +229,7 @@ export default async function ArticlePage({
                 fill
                 priority
                 className="object-cover"
-                sizes="100vw"
+                sizes="(max-width: 640px) 80vw, 24rem"
                 placeholder="blur"
                 blurDataURL={getImageBlurUrl(post.heroImage)}
               />
@@ -249,7 +249,7 @@ export default async function ArticlePage({
                       {post.subtitle}
                     </p>
                   )}
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/70">
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/80">
                     {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
                     <span>{formatDate(post.publishedAt)}</span>
                   </div>

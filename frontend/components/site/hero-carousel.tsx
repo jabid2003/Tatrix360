@@ -52,7 +52,7 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
                   className="relative h-[300px] w-full flex-shrink-0 sm:h-[400px] lg:h-[480px]"
                 >
                   {/* Full image is the clickable link */}
-                  <Link href={href} aria-label={`Read: ${post.title}`} className="group absolute inset-0 block">
+                  <Link href={href} aria-label={`Read: ${post.title}`} className="group absolute inset-0 block" tabIndex={i === index ? 0 : -1}>
                     {post.heroImage ? (
                       <Image
                         src={post.heroImage}
@@ -60,7 +60,7 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
                         fill
                         priority
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
-                        sizes="(max-width: 1024px) 100vw, 100vw"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 56rem"
                         placeholder="blur"
                         blurDataURL={getImageBlurUrl(post.heroImage)}
                       />
@@ -85,7 +85,7 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
                         {post.subtitle}
                       </p>
                     )}
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/70 sm:text-sm">
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/80 sm:text-sm">
                       {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
                       <span>{formatDate(post.publishedAt)}</span>
                     </div>
@@ -116,15 +116,17 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
               </button>
 
               {/* Dots + counter */}
-              <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 backdrop-blur">
+              <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 backdrop-blur">
                 {posts.map((_, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setIndex(i)}
                     aria-label={`Go to slide ${i + 1}`}
-                    className={`h-1.5 rounded-full transition-all ${i === index ? 'w-5 bg-white' : 'w-1.5 bg-white/50'}`}
-                  />
+                    className="flex h-11 w-11 items-center justify-center"
+                  >
+                    <span className={`block h-2 rounded-full transition-all ${i === index ? 'w-6 bg-white' : 'w-2 bg-white/50'}`} />
+                  </button>
                 ))}
               </div>
             </>

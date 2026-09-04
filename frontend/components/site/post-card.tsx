@@ -158,7 +158,7 @@ export function TrendingCard({ post, rank }: { post: Post; rank: number }) {
 
   const content = (
     <>
-      <span aria-hidden="true" className="flex-shrink-0 font-serif text-xl font-bold text-muted-foreground/30 transition-colors group-hover:text-primary">
+      <span aria-hidden="true" className="flex-shrink-0 font-serif text-xl font-bold text-muted-foreground/60 transition-colors group-hover:text-primary">
         {String(rank).padStart(2, '0')}
       </span>
       <div className="min-w-0 flex-1">
