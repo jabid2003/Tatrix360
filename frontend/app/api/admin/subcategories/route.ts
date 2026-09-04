@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createSubcategory } from '@/lib/data';
 
 export async function POST(request: Request) {
@@ -29,6 +30,8 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
     }
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json({ ok: true, subcategory: result.subcategory });
   } catch (err) {

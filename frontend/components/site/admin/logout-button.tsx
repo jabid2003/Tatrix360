@@ -13,7 +13,7 @@ export function LogoutButton() {
     try {
       await fetch('/api/admin/logout', { method: 'POST' });
     } finally {
-      router.push('/admin/login');
+      window.location.href = '/adminmja/login';
       router.refresh();
     }
   }

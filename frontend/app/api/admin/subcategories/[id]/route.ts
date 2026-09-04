@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { updateSubcategory, deleteSubcategory } from '@/lib/data';
 
 export async function PATCH(
@@ -39,6 +40,7 @@ export async function PATCH(
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
     }
+    revalidatePath('/', 'layout');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[admin subcategories PATCH] error:', err);
@@ -60,6 +62,7 @@ export async function DELETE(
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
     }
+    revalidatePath('/', 'layout');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[admin subcategories DELETE] error:', err);

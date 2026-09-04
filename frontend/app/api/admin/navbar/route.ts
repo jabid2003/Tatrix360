@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET() {
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
+    revalidatePath('/', 'layout');
     return NextResponse.json({ ok: true, link: data });
   } catch (err) {
     console.error('[admin navbar] POST error:', err);

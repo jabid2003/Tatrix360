@@ -337,12 +337,26 @@ export function ArticleForm({ categories, subcategories, authorNames, mode, post
         return;
       }
 
-      router.push('/admin');
-      router.refresh();
+      // Hard reload after publishing so the dashboard (and public cache)
+      // immediately reflects the latest article / UI changes.
+      window.location.href = '/adminmja';
     } catch {
       setError('Something went wrong. Please try again.');
       setSubmitting(false);
     }
+  }
+
+  // Full-load guard: never allow editing/saving until the post is fully loaded.
+  const fullyLoaded = mode === 'create' || !!initialPost?.id && !!title;
+  if (mode === 'edit' && !fullyLoaded) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-5 py-16 text-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <p className="mt-4 text-sm text-muted-foreground">
+          Post data is still loading. Please wait a moment before editing.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -422,6 +436,18 @@ export function ArticleForm({ categories, subcategories, authorNames, mode, post
               >
                 <X className="h-3.5 w-3.5" />
                 Remove
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="max-w-full truncate font-mono text-xs text-muted-foreground" title={heroImage}>
+                {heroImage}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard?.writeText(heroImage)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                Copy URL
               </button>
             </div>
           </div>

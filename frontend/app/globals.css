@@ -170,3 +170,44 @@
   from { max-height: 0; opacity: 0; }
   to { max-height: 300px; opacity: 1; }
 }
+
+/* Latest ticker text — smooth slide-in on change */
+@keyframes ticker-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ticker-in {
+  animation: ticker-in 0.4s ease-out both;
+}
+
+/* Smooth fade-in for page content */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: page-enter 0.35s ease-out both;
+}
+
+/* Smooth progress shimmer for loading bars */
+@keyframes loading-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.loading-slide {
+  animation: loading-slide 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
