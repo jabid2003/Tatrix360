@@ -13,6 +13,7 @@ import {
 import { PostCard } from '@/components/site/post-card';
 import { Sidebar } from '@/components/site/sidebar';
 import { HeroCarousel } from '@/components/site/hero-carousel';
+import { FadeInWhenVisible } from '@/components/site/fade-in-when-visible';
 
 export default async function HomePage() {
   const [heroPosts, latest, trending, categories] = await Promise.all([
@@ -57,8 +58,10 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            {rest.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {rest.map((post, i) => (
+              <FadeInWhenVisible key={post.id} delay={i * 60}>
+                <PostCard post={post} />
+              </FadeInWhenVisible>
             ))}
           </div>
         </div>
@@ -85,11 +88,13 @@ export default async function HomePage() {
               <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
                 <h3 className="font-serif text-lg font-bold tracking-tight">{category.name}</h3>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                {posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </div>
+              <FadeInWhenVisible>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                  {posts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              </FadeInWhenVisible>
               <div className="mt-4 flex justify-start">
                 <Link
                   href={`/category/${category.slug}`}

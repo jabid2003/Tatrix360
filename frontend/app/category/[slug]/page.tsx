@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPosts, getCategories, getSubcategoriesByCategory } from '@/lib/data';
 import { PostCard } from '@/components/site/post-card';
+import { FadeInWhenVisible } from '@/components/site/fade-in-when-visible';
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -111,11 +112,13 @@ export default async function CategoryPage({
         )}
 
         {posts.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 md:grid-cols-4">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
+          <FadeInWhenVisible>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 md:grid-cols-4">
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          </FadeInWhenVisible>
         ) : (
           <div className="rounded-2xl border border-dashed border-border px-5 py-16 text-center">
             <p className="text-muted-foreground">No articles in this category yet.</p>

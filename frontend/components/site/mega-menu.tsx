@@ -7,7 +7,7 @@ export function MegaMenu({ link }: { link: NavbarLink }) {
   if (!link.children?.length) return null;
   const PanelIcon = (Icons as any)[link.icon_name ?? 'Circle'] ?? Icons.Circle;
   return (
-    <div className="absolute left-1/2 top-full hidden -translate-x-1/2 pt-2 group-hover:block">
+    <div className="dropdown-panel absolute left-1/2 top-full -translate-x-1/2 pt-2">
       <div className="relative z-50 w-[560px] overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
         {/* header */}
         <div className="flex items-center gap-3 border-b border-border bg-popover px-5 py-3.5">
@@ -33,9 +33,9 @@ export function MegaMenu({ link }: { link: NavbarLink }) {
               <Link
                 key={c.id}
                 href={c.slug}
-                className="group/item flex items-start gap-3 bg-popover p-4 transition-colors hover:bg-muted"
+                className="group/item flex items-start gap-3 bg-popover p-4 transition-colors duration-150 hover:bg-muted"
               >
-                <C className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover/item:text-foreground" />
+                <C className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors duration-150 group-hover/item:text-foreground" />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium leading-none text-foreground">{c.label}</span>
                   {c.description && (
@@ -56,7 +56,7 @@ export function MegaMenu({ link }: { link: NavbarLink }) {
 export function Dropdown({ link }: { link: NavbarLink }) {
   if (!link.children?.length) return null;
   return (
-    <div className="absolute left-0 top-full hidden min-w-48 pt-2 group-hover:block">
+    <div className="dropdown-panel absolute left-0 top-full min-w-48 pt-2">
       <div className="relative z-50 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-lg">
         {link.children.map((c) => {
           const C = (Icons as any)[c.icon_name ?? 'Circle'] ?? Icons.Circle;
@@ -64,7 +64,7 @@ export function Dropdown({ link }: { link: NavbarLink }) {
             <Link
               key={c.id}
               href={c.slug}
-              className="flex items-center gap-2.5 px-4 py-2 text-sm text-foreground hover:bg-muted"
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-foreground transition-colors duration-150 hover:bg-muted"
             >
               <C className="h-4 w-4 text-muted-foreground" />
               {c.label}

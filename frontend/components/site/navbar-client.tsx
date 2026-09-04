@@ -105,14 +105,14 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
     <header className="sticky top-0 z-50 w-full">
       {/* Latest ticker */}
       <div className="border-b bg-background">
-        <div className="container-page flex h-8 items-center justify-center gap-2 overflow-hidden text-xs" aria-live="polite" aria-atomic="true">
-          <span className="shrink-0 font-semibold uppercase tracking-wider text-primary">Latest</span>
+        <div className="container-page flex h-9 items-center justify-center gap-2 overflow-hidden text-xs" aria-live="polite" aria-atomic="true">
+          <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Latest</span>
           <span aria-hidden="true" className="shrink-0 text-muted-foreground/50">·</span>
           {tickerPost && tickerPost.category ? (
             <Link
               key={tickerPost.id}
               href={`/${tickerPost.category.slug}/${tickerPost.slug}`}
-              className="ticker-in inline-block max-w-[60%] truncate text-muted-foreground transition-colors hover:text-foreground"
+              className="ticker-in inline-block max-w-[60%] truncate font-medium text-foreground/80 underline-offset-2 transition-colors hover:text-primary hover:underline"
             >
               {tickerPost.title}
             </Link>
@@ -137,7 +137,7 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
                 <div key={l.id} className="desktop-nav-group group relative">
                   <Link
                     href={l.slug}
-                    className="inline-flex items-center gap-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex items-center gap-0.5 text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground"
                   >
                     {l.label}
                     {hasChildren && (
@@ -186,21 +186,19 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
         </div>
       </div>
 
-      {/* Mobile drawer — rendered outside header stacking context */}
-      {mobile && (
-        <>
-          {/* Backdrop */}
-          <button
-            type="button"
-            aria-label="Close menu"
-            onClick={() => setMobile(false)}
-            className="fixed inset-0 z-[59] bg-black/30 lg:hidden"
-          />
-          <div
-            ref={mobileRef}
-            className="fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden"
-            style={{ top: '88px' }}
-          >
+      {/* Mobile drawer — always mounted for smooth transitions */}
+      <button
+        type="button"
+        aria-label="Close menu"
+        onClick={() => setMobile(false)}
+        className={`drawer-backdrop fixed inset-0 z-[59] bg-black/30 lg:hidden ${mobile ? 'open' : ''}`}
+      />
+      <div
+        ref={mobileRef}
+        className={`drawer-panel fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden ${mobile ? 'open' : ''}`}
+        style={{ top: '88px' }}
+        aria-hidden={!mobile}
+      >
             <div className="flex-1 overflow-y-auto">
               {/* Search */}
               <div className="border-b p-3">
@@ -297,8 +295,6 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
               Tatrix360 — Tech, decoded.
             </div>
           </div>
-        </>
-      )}
     </header>
   );
 }
