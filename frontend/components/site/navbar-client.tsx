@@ -137,7 +137,7 @@ export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; late
                 <div key={l.id} className="desktop-nav-group group relative">
                   <Link
                     href={l.slug}
-                    className="inline-flex items-center gap-0.5 text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground"
+                    className="inline-flex items-center gap-0.5 text-sm font-medium text-foreground transition-colors hover:text-foreground"
                   >
                     {l.label}
                     {hasChildren && (

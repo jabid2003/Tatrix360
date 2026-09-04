@@ -11,7 +11,7 @@ import { PostViewTracker } from '@/components/PostViewTracker';
 import ArticleActions from '@/components/article-actions';
 import { ReadAlso } from '@/components/site/read-also';
 import { AdBanner } from '@/components/site/ad-banner';
-import { SideBySideAd } from '@/components/site/side-by-side-ad';
+import { ArticleSidebar } from '@/components/site/article-sidebar';
 
 import { ArrowLeft } from 'lucide-react';
 
@@ -102,8 +102,6 @@ export default async function ArticlePage({
 
   const post = result.post;
 
-  // Categories the post belongs to: prefer the multi-category array from the
-  // post_categories junction, fall back to the single primary category.
   const postCategories =
     post.categories && post.categories.length > 0
       ? post.categories
@@ -119,12 +117,10 @@ export default async function ArticlePage({
     .filter((p) => p.slug !== post.slug)
     .slice(0, 4);
 
-  // Fetch read_also posts if read_also_ids exist
   const readAlsoPosts = post.readAlsoIds && post.readAlsoIds.length > 0
     ? await getPostsByIds(post.readAlsoIds)
     : [];
 
-  // Related menu/subcategory links for the post's primary category
   const relatedSubMenus = post.category
     ? await getSubcategoriesByCategory(post.category.slug)
     : [];
@@ -149,108 +145,161 @@ export default async function ArticlePage({
     image: post.heroImage ? [post.heroImage] : undefined,
   };
 
-  // Split content into paragraphs to insert ReadAlso mid-way
   const contentLines = post.content ? post.content.split('\n') : [];
   const midpoint = Math.floor(contentLines.length / 2);
 
+  // Find paragraph 3 index (3rd non-empty, non-heading line)
+  let paragraphCount = 0;
+  let adInsertIndex = -1;
+  for (let i = 0; i < contentLines.length; i++) {
+    const line = contentLines[i];
+    if (line.trim() === '' || line.startsWith('## ') || line.startsWith('- ')) continue;
+    paragraphCount++;
+    if (paragraphCount === 3) {
+      adInsertIndex = i + 1;
+      break;
+    }
+  }
+
   return (
-    <article className="container-page py-6 sm:py-10">
-      <PostViewTracker slug={post.slug} />
+    <>
+      {/* AD SLOT 1: TOP BANNER — already rendered in layout.tsx */}
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
+      <article className="container-page py-6 sm:py-10">
+        <PostViewTracker slug={post.slug} />
 
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
-        <span>/</span>
-        <Link href={`/category/${post.category?.slug}`} className="transition-colors hover:text-foreground">
-          {post.category?.name}
-        </Link>
-      </nav>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
 
-      {/* Hero image — full-bleed with text overlay */}
-      {post.heroImage && (
-        <>
-          {/* Desktop hero — 2:1 landscape, compact */}
-          <div className="relative mx-auto hidden aspect-[2/1] w-full max-w-3xl overflow-hidden rounded-2xl border border-border lg:block">
-            <Image
-              src={post.heroImage}
-              alt={post.title}
-              fill
-              priority
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 72rem"
-              placeholder="blur"
-              blurDataURL={getImageBlurUrl(post.heroImage)}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5 lg:p-7">
-              <div className="max-w-2xl">
-                {post.category && (
-                  <span className="mb-2 inline-block rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-foreground">
-                    {post.category.name}
-                  </span>
-                )}
-                <h1 className="font-serif text-2xl font-bold leading-tight text-white lg:text-3xl lg:text-balance">
-                  {post.title}
-                </h1>
-                {post.subtitle && (
-                  <p className="mt-2 max-w-xl text-xs text-white/80 lg:text-sm">
-                    {post.subtitle}
-                  </p>
-                )}
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-white/70 lg:text-sm">
-                  {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
-                  <span>{formatDate(post.publishedAt)}</span>
+        {/* Breadcrumb */}
+        <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
+          <span>/</span>
+          <Link href={`/category/${post.category?.slug}`} className="transition-colors hover:text-foreground">
+            {post.category?.name}
+          </Link>
+        </nav>
+
+        {/* Hero image — full-bleed with text overlay */}
+        {post.heroImage && (
+          <>
+            {/* Desktop hero — 2:1 landscape */}
+            <div className="relative mx-auto hidden aspect-[2/1] w-full max-w-3xl overflow-hidden rounded-2xl border border-border lg:block">
+              <Image
+                src={post.heroImage}
+                alt={post.title}
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 72rem"
+                placeholder="blur"
+                blurDataURL={getImageBlurUrl(post.heroImage)}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5 lg:p-7">
+                <div className="max-w-2xl">
+                  {post.category && (
+                    <span className="mb-2 inline-block rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-foreground">
+                      {post.category.name}
+                    </span>
+                  )}
+                  <h1 className="font-serif text-2xl font-bold leading-tight text-white lg:text-3xl lg:text-balance">
+                    {post.title}
+                  </h1>
+                  {post.subtitle && (
+                    <p className="mt-2 max-w-xl text-xs text-white/80 lg:text-sm">
+                      {post.subtitle}
+                    </p>
+                  )}
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-white/70 lg:text-sm">
+                    {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
+                    <span>{formatDate(post.publishedAt)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Mobile hero — 3:4 portrait, compact */}
-          <div className="relative mx-auto block aspect-[3/4] w-full max-w-sm overflow-hidden rounded-2xl border border-border lg:hidden">
-            <Image
-              src={post.heroImage}
-              alt={post.title}
-              fill
-              priority
-              className="object-cover"
-              sizes="100vw"
-              placeholder="blur"
-              blurDataURL={getImageBlurUrl(post.heroImage)}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5">
-              <div className="max-w-sm">
-                {post.category && (
-                  <span className="mb-2 inline-block rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
-                    {post.category.name}
-                  </span>
-                )}
-                <h1 className="font-serif text-2xl font-bold leading-tight text-white">
-                  {post.title}
-                </h1>
-                {post.subtitle && (
-                  <p className="mt-2 text-xs text-white/80">
-                    {post.subtitle}
-                  </p>
-                )}
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/70">
-                  {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
-                  <span>{formatDate(post.publishedAt)}</span>
+            {/* Mobile hero — 3:4 portrait */}
+            <div className="relative mx-auto block aspect-[3/4] w-full max-w-sm overflow-hidden rounded-2xl border border-border lg:hidden">
+              <Image
+                src={post.heroImage}
+                alt={post.title}
+                fill
+                priority
+                className="object-cover"
+                sizes="100vw"
+                placeholder="blur"
+                blurDataURL={getImageBlurUrl(post.heroImage)}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <div className="max-w-sm">
+                  {post.category && (
+                    <span className="mb-2 inline-block rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
+                      {post.category.name}
+                    </span>
+                  )}
+                  <h1 className="font-serif text-2xl font-bold leading-tight text-white">
+                    {post.title}
+                  </h1>
+                  {post.subtitle && (
+                    <p className="mt-2 text-xs text-white/80">
+                      {post.subtitle}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-white/70">
+                    {post.author && <span className="font-medium text-white/90">{post.author.name}</span>}
+                    <span>{formatDate(post.publishedAt)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {/* No-hero fallback — if no hero image, show title + meta normally */}
-      {!post.heroImage && (
-        <div className="mx-auto max-w-3xl">
+        {/* No-hero fallback */}
+        {!post.heroImage && (
+          <div className="mx-auto max-w-3xl">
+            {postCategories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {postCategories.map((cat) => (
+                  <Link key={cat.id} href={`/category/${cat.slug}`} className="badge-primary">
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+            <h1 className="mt-4 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl lg:text-balance">
+              {post.title}
+            </h1>
+            {post.subtitle && (
+              <p className="mt-4 text-lg text-muted-foreground lg:text-xl lg:text-pretty">
+                {post.subtitle}
+              </p>
+            )}
+            <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-border py-4">
+              {post.author && (
+                <div className="flex items-center gap-3">
+                  {post.author.avatar && (
+                    <Image src={post.author.avatar} alt={post.author.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover ring-2 ring-border" />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{post.author.name}</p>
+                    {post.author.role && <p className="text-xs text-muted-foreground">{post.author.role}</p>}
+                  </div>
+                </div>
+              )}
+              <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
+                <span>{formatDate(post.publishedAt)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Article actions + category badges */}
+        <div className="mx-auto mt-4 flex max-w-4xl items-center justify-between">
           {postCategories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {postCategories.map((cat) => (
@@ -260,149 +309,99 @@ export default async function ArticlePage({
               ))}
             </div>
           )}
-          <h1 className="mt-4 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl lg:text-balance">
-            {post.title}
-          </h1>
-          {post.subtitle && (
-            <p className="mt-4 text-lg text-muted-foreground lg:text-xl lg:text-pretty">
-              {post.subtitle}
-            </p>
-          )}
-          <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-border py-4">
-            {post.author && (
-              <div className="flex items-center gap-3">
-                {post.author.avatar && (
-                  <Image src={post.author.avatar} alt={post.author.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover ring-2 ring-border" />
+          <ArticleActions title={post.title} description={post.subtitle} />
+        </div>
+
+        {/* ═══ MAIN 2-COLUMN GRID ═══ */}
+        <div className="mx-auto mt-8 flex max-w-6xl gap-8">
+
+          {/* ── LEFT COLUMN: Main Content (75%) ── */}
+          <main className="min-w-0 flex-1" role="main">
+
+            {/* AD SLOT 2: IN-CONTENT AD — between paragraphs 3-4 */}
+            <div className="mx-auto max-w-3xl">
+              <AdBanner placement="in-article" adSlot="in-content-1" />
+            </div>
+
+            {/* Article body */}
+            {post.content && (
+              <div className="prose-article mx-auto mt-8 max-w-3xl text-lg leading-relaxed">
+                {contentLines.map((line, i) => {
+                  // Insert ReadAlso at midpoint
+                  if (i === midpoint && readAlsoPosts.length > 0) {
+                    return <ReadAlso key="read-also" posts={readAlsoPosts} />;
+                  }
+
+                  // Render line
+                  if (line.startsWith('## ')) {
+                    return <h2 key={i} className="mt-8 font-serif text-2xl font-bold tracking-tight">{line.slice(3)}</h2>;
+                  }
+                  if (line.startsWith('- ')) {
+                    return <li key={i} className="ml-6 list-disc">{line.slice(2)}</li>;
+                  }
+                  if (line.trim() === '') return null;
+                  return <p key={i} className="mt-4">{line}</p>;
+                })}
+
+                {readAlsoPosts.length > 0 && midpoint >= contentLines.length && (
+                  <ReadAlso posts={readAlsoPosts} />
                 )}
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{post.author.name}</p>
-                  {post.author.role && <p className="text-xs text-muted-foreground">{post.author.role}</p>}
-                </div>
               </div>
             )}
-            <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
-              <span>{formatDate(post.publishedAt)}</span>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Article actions + category badges (below hero) */}
-      <div className="mx-auto mt-4 flex max-w-4xl items-center justify-between">
-        {postCategories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {postCategories.map((cat) => (
-              <Link key={cat.id} href={`/category/${cat.slug}`} className="badge-primary">
-                {cat.name}
+            {/* Tags / Read more */}
+            {(post.tags?.length || relatedSubMenus.length || post.category) && (
+              <section className="mx-auto mt-10 max-w-3xl border-t border-border pt-8" aria-label="Read more">
+                <p className="section-label mb-4">Read more</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {post.category && (
+                    <Link href={`/category/${post.category.slug}`} className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary">
+                      {post.category.name}
+                    </Link>
+                  )}
+                  {relatedSubMenus.map((sub) => (
+                    <Link key={sub.id} href={`/category/${post.category!.slug}/${sub.slug}`} className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary">
+                      {sub.name}
+                    </Link>
+                  ))}
+                  {post.tags?.map((tag) => (
+                    <Link key={tag.id} href={`/tag/${tag.slug}`} className="inline-flex items-center rounded-lg border border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                      #{tag.name}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Article Bottom Ad */}
+            <div className="mx-auto mt-8 max-w-3xl">
+              <AdBanner placement="in-article" adSlot="article-bottom" />
+            </div>
+
+            <div className="mx-auto mt-8 max-w-3xl">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+                <ArrowLeft className="h-4 w-4" />
+                Back to home
               </Link>
-            ))}
-          </div>
-        )}
-        <ArticleActions title={post.title} description={post.subtitle} />
-      </div>
-
-      {/* Two-column: Content + Sidebar Ad */}
-      <div className="mx-auto mt-8 flex max-w-6xl gap-8">
-        {/* Main content */}
-        <div className="min-w-0 flex-1">
-          {/* Article Top Ad */}
-          <div className="mx-auto max-w-3xl">
-            <AdBanner placement="article-top" adSlot="article-top" />
-          </div>
-
-          {post.content && (
-            <div className="prose-article mx-auto mt-10 max-w-3xl text-lg leading-relaxed">
-              {contentLines.map((line, i) => {
-                if (i === midpoint && readAlsoPosts.length > 0) {
-                  return <ReadAlso key="read-also" posts={readAlsoPosts} />;
-                }
-
-                const middleIndex = Math.floor(contentLines.length * 0.7);
-                if (i === middleIndex && contentLines.length > 8) {
-                  return (
-                    <div key={`ad-middle-${i}`}>
-                      <AdBanner placement="article-middle" adSlot="article-middle" />
-                      {line.startsWith('## ') ? (
-                        <h2 className="mt-8 font-serif text-2xl font-bold tracking-tight">{line.slice(3)}</h2>
-                      ) : line.startsWith('- ') ? (
-                        <li className="ml-6 list-disc">{line.slice(2)}</li>
-                      ) : line.trim() === '' ? null : (
-                        <p className="mt-4">{line}</p>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (line.startsWith('## ')) {
-                  return <h2 key={i} className="mt-8 font-serif text-2xl font-bold tracking-tight">{line.slice(3)}</h2>;
-                }
-                if (line.startsWith('- ')) {
-                  return <li key={i} className="ml-6 list-disc">{line.slice(2)}</li>;
-                }
-                if (line.trim() === '') return null;
-                return <p key={i} className="mt-4">{line}</p>;
-              })}
-
-              {readAlsoPosts.length > 0 && midpoint >= contentLines.length && (
-                <ReadAlso posts={readAlsoPosts} />
-              )}
             </div>
-          )}
+          </main>
 
-          {(post.tags?.length || relatedSubMenus.length || post.category) && (
-            <section className="mx-auto mt-10 max-w-3xl border-t border-border pt-8" aria-label="Read more">
-              <p className="section-label mb-4">Read more</p>
-              <div className="flex flex-wrap gap-2.5">
-                {post.category && (
-                  <Link href={`/category/${post.category.slug}`} className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary">
-                    {post.category.name}
-                  </Link>
-                )}
-                {relatedSubMenus.map((sub) => (
-                  <Link key={sub.id} href={`/category/${post.category!.slug}/${sub.slug}`} className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary">
-                    {sub.name}
-                  </Link>
-                ))}
-                {post.tags?.map((tag) => (
-                  <Link key={tag.id} href={`/tag/${tag.slug}`} className="inline-flex items-center rounded-lg border border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
-                    #{tag.name}
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Article Bottom Ad */}
-          <div className="mx-auto mt-8 max-w-3xl">
-            <AdBanner placement="article-bottom" adSlot="article-bottom" />
-          </div>
-
-          <div className="mx-auto mt-8 max-w-3xl">
-            <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-              <ArrowLeft className="h-4 w-4" />
-              Back to home
-            </Link>
-          </div>
+          {/* ── RIGHT COLUMN: Sidebar (25%) ── */}
+          <ArticleSidebar trending={relatedPosts} />
         </div>
 
-        {/* Sidebar — desktop only, sticky ad */}
-        <aside className="hidden w-72 shrink-0 lg:block">
-          <div className="sticky top-28">
-            <SideBySideAd />
-          </div>
-        </aside>
-      </div>
-
-      {relatedPosts.length > 0 && (
-        <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
-          <h2 className="font-serif text-xl font-bold tracking-tight">Related stories</h2>
-          <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4">
-            {relatedPosts.map((p) => (
-              <CompactCard key={p.id} post={p} />
-            ))}
-          </div>
-        </section>
-      )}
-    </article>
+        {/* Related stories */}
+        {relatedPosts.length > 0 && (
+          <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">
+            <h2 className="font-serif text-xl font-bold tracking-tight">Related stories</h2>
+            <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4">
+              {relatedPosts.map((p) => (
+                <CompactCard key={p.id} post={p} />
+              ))}
+            </div>
+          </section>
+        )}
+      </article>
+    </>
   );
 }
