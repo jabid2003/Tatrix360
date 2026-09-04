@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { SearchView } from '@/components/site/search-view';
 
@@ -17,5 +18,9 @@ export const metadata: Metadata = {
 };
 
 export default function SearchPage() {
-  return <SearchView />;
+  return (
+    <Suspense>
+      <SearchView />
+    </Suspense>
+  );
 }

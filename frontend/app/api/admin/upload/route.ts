@@ -68,6 +68,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ ok: false, error: 'Missing publicId.' }, { status: 400 });
     }
 
+    if (!publicId.startsWith('tatrix360/')) {
+      return NextResponse.json({ ok: false, error: 'Invalid asset.' }, { status: 400 });
+    }
+
     const result = await cloudinary.uploader.destroy(publicId);
 
     if (result.result !== 'ok') {

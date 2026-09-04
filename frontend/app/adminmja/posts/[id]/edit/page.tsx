@@ -2,6 +2,10 @@ import { notFound } from 'next/navigation';
 import { getPostById, getCategories, getAuthors, getAdminPosts, getTags, getSubcategories } from '@/lib/data';
 import { ArticleForm } from '@/components/site/admin/article-form';
 
+// Always fetch the freshest post data (images, content, meta) on every visit,
+// so saving/uploading then opening Edit shows the latest without a manual refresh.
+export const dynamic = 'force-dynamic';
+
 interface EditArticlePageProps {
   params: { id: string };
 }

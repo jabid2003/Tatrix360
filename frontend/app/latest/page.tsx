@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getPosts } from '@/lib/data';
-import { PostCard } from '@/components/site/post-card';
+import { LatestPosts } from '@/components/site/latest-posts';
 
 export const revalidate = 60;
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LatestPage() {
-  const posts = await getPosts({ pageSize: 20 });
+  const posts = await getPosts({ pageSize: 50 });
 
   return (
     <main className="container-page py-8 sm:py-12">
@@ -31,11 +31,7 @@ export default async function LatestPage() {
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        <LatestPosts all={posts} />
       ) : (
         <div className="rounded-2xl border border-dashed border-border px-5 py-16 text-center">
           <p className="text-muted-foreground">No latest stories found.</p>

@@ -1,79 +1,140 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X, ChevronDown } from 'lucide-react';
+import { Search, Menu, X, ChevronDown, ArrowRight } from 'lucide-react';
 import { MegaMenu, Dropdown } from './mega-menu';
 import { ThemeToggle } from './theme-toggle';
 import type { NavbarLink } from '@/types/navbar';
+import type { Post } from '@/lib/types';
 
-const LATEST_LINKS = ['AI News', 'OS News', 'Top Mobiles', 'Apps', 'Smartwatches'];
-
-export function NavbarClient({ links }: { links: NavbarLink[] }) {
+export function NavbarClient({ links, latest = [] }: { links: NavbarLink[]; latest?: Post[] }) {
   const router = useRouter();
   const [mobile, setMobile] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mobileQuery, setMobileQuery] = useState('');
+  const mobileRef = useRef<HTMLDivElement>(null);
 
-  // Dropdowns close on outside click
+  // Latest ticker auto-slide
+  const [tickerIndex, setTickerIndex] = useState(0);
+  const tickerLen = latest.length;
   useEffect(() => {
+    if (tickerLen < 2) return;
+    const id = setInterval(() => setTickerIndex((i) => (i + 1) % tickerLen), 5000);
+    return () => clearInterval(id);
+  }, [tickerLen]);
+
+  // Desktop dropdowns close on outside click (only when NOT in mobile mode)
+  useEffect(() => {
+    if (mobile) return;
     const onClick = (e: MouseEvent) => {
       const t = e.target as HTMLElement;
-      if (!t.closest('.group')) setOpen({});
+      if (!t.closest('.desktop-nav-group')) setOpen({});
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
-  }, []);
+  }, [mobile]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
-    document.body.style.overflow = mobile ? 'hidden' : '';
-    return () => {
+    if (mobile) {
+      document.body.style.overflow = 'hidden';
+    } else {
       document.body.style.overflow = '';
-    };
+    }
+    return () => { document.body.style.overflow = ''; };
   }, [mobile]);
 
-  // Add a hairline shadow when scrolled
+  // Add shadow when scrolled
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Close mobile drawer on route change (path-based, not router reference)
+  const pathnameRef = useRef('');
+  useEffect(() => {
+    const handler = () => {
+      const path = window.location.pathname;
+      if (path !== pathnameRef.current) {
+        setMobile(false);
+        pathnameRef.current = path;
+      }
+    };
+    window.addEventListener('popstate', handler);
+    pathnameRef.current = window.location.pathname;
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
+
+  // Also close on Next.js navigation
+  useEffect(() => {
+    const orig = router.push;
+    router.push = (...args: Parameters<typeof router.push>) => {
+      setMobile(false);
+      return orig.apply(router, args);
+    };
+    return () => { router.push = orig; };
+  }, [router]);
+
+  const toggleAccordion = useCallback((id: string) => {
+    setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  function runMobileSearch(query: string) {
+    const q = query.trim();
+    if (!q) return;
+    setMobile(false);
+    setMobileQuery('');
+    router.push(`/search?q=${encodeURIComponent(q)}`);
+  }
+
+  function submitSearch(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      const q = (e.target as HTMLInputElement).value;
+      if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+    }
+  }
+
+  const tickerPost = latest[tickerIndex % Math.max(tickerLen, 1)];
+
   return (
     <header className="sticky top-0 z-50 w-full">
-      {/* Latest quick links — thin top strip, centered */}
-      <div className="hidden border-b bg-background sm:block">
-        <div className="container-page flex h-8 items-center justify-center gap-6 text-xs">
-          <span className="font-semibold text-muted-foreground">Latest:</span>
-          {LATEST_LINKS.map((l) => (
+      {/* Latest ticker */}
+      <div className="border-b bg-background">
+        <div className="container-page flex h-8 items-center justify-center gap-2 overflow-hidden text-xs" aria-live="polite" aria-atomic="true">
+          <span className="shrink-0 font-semibold uppercase tracking-wider text-primary">Latest</span>
+          <span aria-hidden="true" className="shrink-0 text-muted-foreground/50">·</span>
+          {tickerPost && tickerPost.category ? (
             <Link
-              key={l}
-              href="/latest"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              key={tickerPost.id}
+              href={`/${tickerPost.category.slug}/${tickerPost.slug}`}
+              className="ticker-in inline-block max-w-[60%] truncate text-muted-foreground transition-colors hover:text-foreground"
             >
-              {l}
+              {tickerPost.title}
             </Link>
-          ))}
+          ) : (
+            <span className="text-muted-foreground/50">Welcome to Tatrix360</span>
+          )}
         </div>
       </div>
 
-      {/* Main bar — minimal text navbar */}
+      {/* Main bar */}
       <div className={`border-b bg-background transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
         <div className="container-page flex h-14 items-center justify-between gap-6">
-          {/* Brand — minimalist text logo */}
           <Link href="/" className="text-[17px] font-bold tracking-tight text-foreground" aria-label="Tatrix360 Home">
             Tatrix<span className="text-primary">360</span>
           </Link>
 
-          {/* Center links — plain text, tight */}
+          {/* Desktop nav links */}
           <nav className="hidden flex-1 items-center justify-center gap-4 lg:flex" aria-label="Main">
             {links.map((l) => {
               const hasChildren = !!l.children?.length;
               return (
-                <div key={l.id} className="group relative">
+                <div key={l.id} className="desktop-nav-group group relative">
                   <Link
                     href={l.slug}
                     className="inline-flex items-center gap-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -89,11 +150,10 @@ export function NavbarClient({ links }: { links: NavbarLink[] }) {
             })}
           </nav>
 
-          {/* Right actions */}
           <div className="flex items-center gap-1">
-            {/* Expanding search */}
+            {/* Desktop search */}
             <div
-              className={`flex items-center overflow-hidden border-b transition-all duration-300 ${
+              className={`hidden items-center overflow-hidden border-b transition-all duration-300 md:flex lg:flex ${
                 searchOpen ? 'w-44 border-foreground/30' : 'w-8 border-transparent'
               }`}
             >
@@ -105,12 +165,7 @@ export function NavbarClient({ links }: { links: NavbarLink[] }) {
                   autoFocus
                   placeholder="Search…"
                   className="w-full bg-transparent py-1 text-sm outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const q = (e.target as HTMLInputElement).value;
-                      if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
-                    }
-                  }}
+                  onKeyDown={submitSearch}
                 />
               )}
             </div>
@@ -120,7 +175,7 @@ export function NavbarClient({ links }: { links: NavbarLink[] }) {
             {/* Mobile hamburger */}
             <button
               type="button"
-              onClick={() => setMobile(!mobile)}
+              onClick={() => setMobile((v) => !v)}
               className="ml-0.5 inline-flex h-9 w-9 items-center justify-center text-foreground lg:hidden"
               aria-label={mobile ? 'Close menu' : 'Open menu'}
               aria-expanded={mobile}
@@ -131,73 +186,118 @@ export function NavbarClient({ links }: { links: NavbarLink[] }) {
         </div>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — rendered outside header stacking context */}
       {mobile && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col bg-background lg:hidden" style={{ top: '56px' }}>
-          <div className="flex-1 overflow-y-auto">
-            <div className="border-b p-3">
-              <div className="flex items-center gap-2 border-b border-foreground/20 px-1">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  placeholder="Search…"
-                  className="w-full bg-transparent py-2.5 text-sm outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const q = (e.target as HTMLInputElement).value;
-                      if (q.trim()) {
-                        setMobile(false);
-                        router.push(`/search?q=${encodeURIComponent(q.trim())}`);
-                      }
-                    }
-                  }}
-                />
+        <>
+          {/* Backdrop */}
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMobile(false)}
+            className="fixed inset-0 z-[59] bg-black/30 lg:hidden"
+          />
+          <div
+            ref={mobileRef}
+            className="fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden"
+            style={{ top: '88px' }}
+          >
+            <div className="flex-1 overflow-y-auto">
+              {/* Search */}
+              <div className="border-b p-3">
+                <div className="flex items-center gap-2 border-b border-border px-1">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    value={mobileQuery}
+                    onChange={(e) => setMobileQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') runMobileSearch(mobileQuery); }}
+                    placeholder="Search…"
+                    aria-label="Search articles"
+                    className="w-full bg-transparent py-2.5 text-sm outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => runMobileSearch(mobileQuery)}
+                    className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                  >
+                    Go
+                  </button>
+                </div>
               </div>
-            </div>
-            <nav className="flex flex-col p-3" aria-label="Mobile">
-              {links.map((l) => {
-                const hasChildren = !!l.children?.length;
-                return (
-                  <div key={l.id}>
-                    <div className="flex items-center border-b border-border">
-                      <Link
-                        href={l.slug}
-                        onClick={() => setMobile(false)}
-                        className="flex-1 py-3 text-sm font-medium hover:text-primary"
-                      >
-                        {l.label}
-                      </Link>
-                      {hasChildren && (
+
+              {/* Menu */}
+              <nav className="flex flex-col p-3" aria-label="Mobile">
+                {links.map((l) => {
+                  const hasChildren = !!l.children?.length;
+                  const isOpen = !!open[l.id];
+                  return (
+                    <div key={l.id}>
+                      {hasChildren ? (
                         <button
                           type="button"
-                          onClick={() => setOpen((p) => ({ ...p, [l.id]: !p[l.id] }))}
-                          className="p-2"
-                          aria-expanded={!!open[l.id]}
-                          aria-label={`Toggle ${l.label}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleAccordion(l.id);
+                          }}
+                          className="flex w-full items-center justify-between border-b border-border py-3 text-left text-sm font-medium transition-colors hover:text-primary"
+                          aria-expanded={isOpen}
                         >
-                          <ChevronDown className={`h-4 w-4 transition-transform ${open[l.id] ? 'rotate-180' : ''}`} />
+                          <span>{l.label}</span>
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                          />
                         </button>
+                      ) : (
+                        <Link
+                          href={l.slug}
+                          onClick={() => setMobile(false)}
+                          className="flex w-full items-center justify-between border-b border-border py-3 text-left text-sm font-medium transition-colors hover:text-primary"
+                        >
+                          <span>{l.label}</span>
+                        </Link>
+                      )}
+
+                      {/* Subcategory expand/collapse with CSS grid transition */}
+                      {hasChildren && (
+                        <div
+                          className="grid transition-all duration-300 ease-in-out"
+                          style={{
+                            gridTemplateRows: isOpen ? '1fr' : '0fr',
+                          }}
+                        >
+                          <div className="overflow-hidden">
+                            <div className="flex flex-col pb-1">
+                              {l.children?.map((c) => (
+                                <Link
+                                  key={c.id}
+                                  href={c.slug}
+                                  onClick={() => setMobile(false)}
+                                  className="border-b border-border/50 py-2.5 pl-4 text-sm text-muted-foreground transition-colors hover:text-primary"
+                                >
+                                  {c.label}
+                                </Link>
+                              ))}
+                              <Link
+                                href={l.slug}
+                                onClick={() => setMobile(false)}
+                                className="flex items-center gap-1 py-2.5 pl-4 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                              >
+                                View all {l.label}
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    {open[l.id] &&
-                      l.children?.map((c) => (
-                        <Link
-                          key={c.id}
-                          href={c.slug}
-                          onClick={() => setMobile(false)}
-                          className="block border-b border-border py-2.5 pl-4 text-sm text-muted-foreground hover:text-primary"
-                        >
-                          {c.label}
-                        </Link>
-                      ))}
-                  </div>
-                );
-              })}
-            </nav>
+                  );
+                })}
+              </nav>
+            </div>
+            <div className="border-t p-4 text-center text-xs text-muted-foreground">
+              Tatrix360 — Tech, decoded.
+            </div>
           </div>
-          <div className="border-t p-4 text-center text-xs text-muted-foreground">
-            Tatrix360 — Tech, decoded.
-          </div>
-        </div>
+        </>
       )}
     </header>
   );

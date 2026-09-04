@@ -16,11 +16,14 @@ export function RouteTransition({ children }: { children: React.ReactNode }) {
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-x-0 top-16 z-[60] h-0.5 overflow-hidden">
-          <div className="h-full w-full origin-left animate-loading-bar bg-gradient-to-r from-primary via-cyan-400 to-primary" />
+        <div className="fixed inset-x-0 top-0 z-[70] h-0.5 overflow-hidden">
+          <div className="loading-slide h-full w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
         </div>
       )}
-      <div className="animate-in-fade">{children}</div>
+      {/* keyed by pathname so content smoothly animates in on every navigation */}
+      <div key={pathname} className="page-enter">
+        {children}
+      </div>
     </>
   );
 }

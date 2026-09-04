@@ -20,7 +20,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   // Only show the "logged in as admin" top bar (with logout) when there's
-  // an actual valid session. This layout also wraps /admin/login, where
+  // an actual valid session. This layout also wraps /adminmja/login, where
   // there's nothing to log out of yet.
   const token = cookies().get(ADMIN_SESSION_COOKIE)?.value;
   const isLoggedIn = token ? await verifySessionToken(token) : false;
@@ -37,10 +37,10 @@ export default async function AdminLayout({
           </div>
           <nav className="flex gap-1 px-4 pb-3 sm:px-6" aria-label="Admin navigation">
             {[
-              { href: '/admin', label: 'Articles' },
-              { href: '/admin/posts/new', label: 'New Article' },
-              { href: '/admin/categories', label: 'Categories' },
-              { href: '/admin/navbar', label: 'Navbar' },
+              { href: '/adminmja', label: 'Articles' },
+              { href: '/adminmja/posts/new', label: 'New Article' },
+              { href: '/adminmja/categories', label: 'Categories' },
+              { href: '/adminmja/navbar', label: 'Navbar' },
             ].map((link) => (
               <Link
                 key={link.href}

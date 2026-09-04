@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { deletePost, updatePost, type PostInput } from '@/lib/data';
 
 // Protected by middleware.ts (matcher includes /api/admin/:path*)
@@ -18,6 +19,8 @@ export async function DELETE(
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
+
+  revalidatePath('/', 'layout');
 
   return NextResponse.json({ ok: true });
 }
@@ -82,6 +85,8 @@ export async function PATCH(
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
+
+  revalidatePath('/', 'layout');
 
   return NextResponse.json({ ok: true, post: result.post });
 }

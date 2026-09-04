@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Post } from '@/lib/types';
-import { formatDate, estimateReadingTime } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { getImageBlurUrl } from '@/lib/image-utils';
-import { Clock } from 'lucide-react';
 
 function getPostHref(post: Post): string | null {
   if (!post.category) return null;
@@ -15,36 +14,49 @@ export function PostCard({ post }: { post: Post }) {
 
   const media = (
     <div className={`relative block aspect-[4/3] min-h-0 overflow-hidden bg-muted sm:aspect-auto sm:h-48 ${postHref ? 'group' : ''}`}>
-      {post.heroImage ? (
-        <Image
-          src={post.heroImage}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
-          placeholder="blur"
-          blurDataURL={getImageBlurUrl(post.heroImage)}
-        />
+      {postHref ? (
+        <Link href={postHref} aria-label={`Read: ${post.title}`} className="block h-full w-full">
+          {post.heroImage ? (
+            <Image
+              src={post.heroImage}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
+              placeholder="blur"
+              blurDataURL={getImageBlurUrl(post.heroImage)}
+            />
+          ) : (
+            <div aria-hidden="true" className="h-full w-full bg-muted" />
+          )}
+        </Link>
       ) : (
-        <div aria-hidden="true" className="h-full w-full bg-muted" />
+        post.heroImage ? (
+          <Image
+            src={post.heroImage}
+            alt={post.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
+          />
+        ) : (
+          <div aria-hidden="true" className="h-full w-full bg-muted" />
+        )
       )}
-      {post.category && (
-        <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground sm:left-3 sm:top-3 sm:px-2.5 sm:text-xs">
-          {post.category.name}
-        </span>
+      {post.subcategory && post.category && postHref && (
+        <Link
+          href={`/${post.category.slug}/${post.subcategory.slug}`}
+          className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:left-3 sm:top-3 sm:px-2.5 sm:text-xs"
+        >
+          {post.subcategory.name}
+        </Link>
       )}
     </div>
   );
 
   return (
     <article className="group card card-hover flex min-w-0 flex-col overflow-hidden">
-      {postHref ? (
-        <Link href={postHref} aria-label={`Read: ${post.title}`}>
-          {media}
-        </Link>
-      ) : (
-        media
-      )}
+      {media}
 
       <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
         {postHref ? (
@@ -86,15 +98,6 @@ export function PostCard({ post }: { post: Post }) {
             <span aria-hidden="true" className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40" />
           )}
           <span className="whitespace-nowrap">{formatDate(post.publishedAt)}</span>
-          {post.content && (
-            <>
-              <span aria-hidden="true" className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/40" />
-              <span className="flex items-center gap-1 whitespace-nowrap">
-                <Clock className="h-3 w-3" />
-                {estimateReadingTime(post.content)} min
-              </span>
-            </>
-          )}
         </div>
       </div>
     </article>
@@ -120,26 +123,33 @@ export function CompactCard({ post }: { post: Post }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <h4 className="line-clamp-2 break-words text-sm font-medium leading-snug transition-colors group-hover:text-primary">
-          {post.title}
-        </h4>
-        {post.category && (
-          <div className="mt-1 min-w-0 text-xs text-muted-foreground">
-            <span className="block truncate">{post.category.name}</span>
+        {postHref ? (
+          <Link href={postHref}>
+            <h4 className="line-clamp-2 break-words text-sm font-medium leading-snug transition-colors group-hover:text-primary">
+              {post.title}
+            </h4>
+          </Link>
+        ) : (
+          <h4 className="line-clamp-2 break-words text-sm font-medium leading-snug">{post.title}</h4>
+        )}
+        {post.subcategory && post.category && postHref && (
+          <div className="mt-1 min-w-0 text-xs">
+            <Link
+              href={`/${post.category.slug}/${post.subcategory.slug}`}
+              className="truncate font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              {post.subcategory.name}
+            </Link>
           </div>
         )}
       </div>
     </>
   );
 
-  if (!postHref) {
-    return <div className="flex min-w-0 items-start gap-3 py-3">{content}</div>;
-  }
-
   return (
-    <Link href={postHref} aria-label={`Read: ${post.title}`} className="group flex min-w-0 items-start gap-3 py-3">
+    <article className="flex min-w-0 items-start gap-3 py-3">
       {content}
-    </Link>
+    </article>
   );
 }
 

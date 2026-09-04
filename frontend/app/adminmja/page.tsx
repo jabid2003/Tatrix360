@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
         </div>
 
         <Link
-          href="/admin/posts/new"
+          href="/adminmja/posts/new"
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:shadow-glow"
         >
           <Plus className="h-4 w-4" />
@@ -73,7 +73,7 @@ export default async function AdminDashboardPage() {
 
               <div className="flex flex-shrink-0 items-center gap-2">
                 <Link
-                  href={`/admin/posts/${post.id}/edit`}
+                  href={`/adminmja/posts/${post.id}/edit`}
                   className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                 >
                   <Pencil className="h-3.5 w-3.5" />

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createPost, type PostInput } from '@/lib/data';
 
 // Protected by middleware.ts (matcher includes /api/admin/:path*)
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
+
+  // Purge cached site pages so the latest article appears immediately.
+  revalidatePath('/', 'layout');
 
   return NextResponse.json({ ok: true, post: result.post });
 }

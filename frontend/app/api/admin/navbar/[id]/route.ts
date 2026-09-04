@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function PATCH(
@@ -39,6 +40,7 @@ export async function PATCH(
       .eq('id', id);
 
     if (error) throw error;
+    revalidatePath('/', 'layout');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[admin navbar PATCH] error:', err);
@@ -54,6 +56,7 @@ export async function DELETE(
     const { id } = params;
     const { error } = await supabaseAdmin.from('navbar_links').delete().eq('id', id);
     if (error) throw error;
+    revalidatePath('/', 'layout');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[admin navbar DELETE] error:', err);
