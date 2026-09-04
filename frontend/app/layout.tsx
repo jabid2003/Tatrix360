@@ -83,13 +83,17 @@ export default async function RootLayout({
           <NavigationEvents />
 
           <Navbar />
-          <AdBanner placement="header" adSlot="header-leaderboard" />
+
+          {/* AD SLOT 1: TOP BANNER — Leaderboard */}
+          <AdBanner placement="leaderboard" adSlot="top-leaderboard" />
 
           <main className="flex-1">
             <RouteTransition>{children}</RouteTransition>
           </main>
 
-          <AdBanner placement="footer" adSlot="footer-leaderboard" />
+          {/* AD SLOT 4: BOTTOM BANNER */}
+          <AdBanner placement="bottom-banner" adSlot="bottom-leaderboard" />
+
           <SiteFooter />
         </Providers>
 
