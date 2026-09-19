@@ -70,12 +70,6 @@
     @apply bg-primary/20;
   }
 
-  /* Global keyboard focus indicator (accessibility) */
-  :is(a, button, input, select, textarea, [tabindex]):focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-  }
-
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -333,4 +327,14 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/*
+ * Global keyboard focus indicator (accessibility).
+ * Deliberately UNLAYERED: plain CSS beats all @layer styles (including
+ * Tailwind's `outline-none` utility), so keyboard focus is always visible.
+ */
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
