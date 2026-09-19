@@ -49,20 +49,21 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
                   role="group"
                   aria-roledescription="slide"
                   aria-hidden={i === index ? undefined : true}
-                  className="relative h-[300px] w-full flex-shrink-0 sm:h-[400px] lg:h-[480px]"
+                  className="relative h-[300px] w-full flex-shrink-0 overflow-hidden sm:h-[400px] lg:h-[480px]"
                 >
                   {/* Full image is the clickable link */}
-                  <Link href={href} aria-label={`Read: ${post.title}`} className="group absolute inset-0 block">
+                  <Link href={href} aria-label={`Read: ${post.title}`} className="group absolute inset-0 flex items-center justify-center bg-muted p-0.5">
                     {post.heroImage ? (
                       <Image
                         src={post.heroImage}
                         alt={post.title}
-                        fill
-                        priority
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        priority={i === 0}
+                        className="max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105"
                         sizes="(max-width: 1024px) 100vw, 100vw"
                         placeholder="blur"
                         blurDataURL={getImageBlurUrl(post.heroImage)}
+                        width={800}
+                        height={480}
                       />
                     ) : (
                       <div className="h-full w-full bg-muted" />
@@ -72,11 +73,6 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
 
                   {/* Text overlay (also clickable via image link above) */}
                   <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-6 sm:p-8 lg:p-10">
-                    {post.subcategory && (
-                      <span className="mb-3 inline-block rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-foreground">
-                        {post.subcategory.name}
-                      </span>
-                    )}
                     <h1 className="max-w-3xl font-serif text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl lg:text-balance">
                       {post.title}
                     </h1>

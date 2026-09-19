@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -16,7 +17,7 @@ import {
   jetbrainsMono,
 } from './fonts';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -74,6 +75,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headersList = headers();
+  const isAdmin = headersList.get('x-is-admin') === '1';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -82,19 +86,28 @@ export default async function RootLayout({
         <Providers>
           <NavigationEvents />
 
-          <Navbar />
+          {!isAdmin && (
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
+            >
+              Skip to content
+            </a>
+          )}
+
+          {!isAdmin && <Navbar />}
 
           {/* AD SLOT 1: TOP BANNER — Leaderboard */}
-          <AdBanner placement="leaderboard" adSlot="top-leaderboard" />
+          {!isAdmin && <AdBanner placement="leaderboard" adSlot="top-leaderboard" />}
 
-          <main className="flex-1">
+          <main id="main-content" className="flex-1">
             <RouteTransition>{children}</RouteTransition>
           </main>
 
           {/* AD SLOT 4: BOTTOM BANNER */}
-          <AdBanner placement="bottom-banner" adSlot="bottom-leaderboard" />
+          {!isAdmin && <AdBanner placement="bottom-banner" adSlot="bottom-leaderboard" />}
 
-          <SiteFooter />
+          {!isAdmin && <SiteFooter />}
         </Providers>
 
         <SpeedInsights />

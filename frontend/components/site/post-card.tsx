@@ -13,18 +13,19 @@ export function PostCard({ post }: { post: Post }) {
   const postHref = getPostHref(post);
 
   const media = (
-    <div className={`relative block aspect-[4/3] min-h-0 overflow-hidden bg-muted sm:aspect-auto sm:h-48 ${postHref ? 'group' : ''}`}>
+    <div className={`relative block aspect-[16/10] min-h-0 bg-muted p-0.5 sm:aspect-auto sm:h-44 ${postHref ? 'group' : ''}`}>
       {postHref ? (
-        <Link href={postHref} aria-label={`Read: ${post.title}`} className="block h-full w-full">
+        <Link href={postHref} aria-label={`Read: ${post.title}`} className="flex h-full w-full items-center justify-center">
           {post.heroImage ? (
             <Image
               src={post.heroImage}
               alt={post.title}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
               placeholder="blur"
               blurDataURL={getImageBlurUrl(post.heroImage)}
+              width={400}
+              height={250}
             />
           ) : (
             <div aria-hidden="true" className="h-full w-full bg-muted" />
@@ -35,21 +36,14 @@ export function PostCard({ post }: { post: Post }) {
           <Image
             src={post.heroImage}
             alt={post.title}
-            fill
-            className="object-cover"
+            className="max-h-full max-w-full object-contain"
             sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 33vw"
+            width={400}
+            height={250}
           />
         ) : (
           <div aria-hidden="true" className="h-full w-full bg-muted" />
         )
-      )}
-      {post.subcategory && post.category && postHref && (
-        <Link
-          href={`/${post.category.slug}/${post.subcategory.slug}`}
-          className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:left-3 sm:top-3 sm:px-2.5 sm:text-xs"
-        >
-          {post.subcategory.name}
-        </Link>
       )}
     </div>
   );
@@ -109,14 +103,15 @@ export function CompactCard({ post }: { post: Post }) {
 
   const content = (
     <>
-      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted p-0.5">
         {post.heroImage ? (
           <Image
             src={post.heroImage}
             alt={post.title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-110"
+            className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-110"
             sizes="56px"
+            width={56}
+            height={56}
           />
         ) : (
           <div aria-hidden="true" className="h-full w-full bg-muted" />
@@ -131,16 +126,6 @@ export function CompactCard({ post }: { post: Post }) {
           </Link>
         ) : (
           <h4 className="line-clamp-2 break-words text-sm font-medium leading-snug">{post.title}</h4>
-        )}
-        {post.subcategory && post.category && postHref && (
-          <div className="mt-1 min-w-0 text-xs">
-            <Link
-              href={`/${post.category.slug}/${post.subcategory.slug}`}
-              className="truncate font-medium text-primary transition-colors hover:text-primary/80"
-            >
-              {post.subcategory.name}
-            </Link>
-          </div>
         )}
       </div>
     </>

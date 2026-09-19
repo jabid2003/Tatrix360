@@ -23,7 +23,7 @@ export function LoadMoreButton({ onClick, loading, hasMore }: LoadMoreButtonProp
         type="button"
         onClick={onClick}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-6 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-6 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
       >
         {loading ? (
           <>

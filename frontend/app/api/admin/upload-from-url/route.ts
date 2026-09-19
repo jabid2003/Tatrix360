@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { cloudinary, sanitizeTitle } from '@/lib/cloudinary';
 
 const PRIVATE_IP = /^(10\.|127\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1$|fe[89ab]c:|f[cd]|0:)/;
+
+function isPrivateIp(ip: string): boolean {
+  return PRIVATE_IP.test(ip.toLowerCase());
+}
 
 function isBlockedUrl(parsed: URL): boolean {
   const host = parsed.hostname;
@@ -11,6 +17,24 @@ function isBlockedUrl(parsed: URL): boolean {
   const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) return true;
   return false;
+}
+
+/**
+ * DNS-rebinding defense: resolve the hostname and reject it if ANY resolved
+ * address is private/loopback/link-local. This closes the gap where a
+ * hostname passes the static check but resolves to an internal IP when
+ * Cloudinary fetches it (or vice versa).
+ */
+async function resolvesToPrivate(host: string): Promise<boolean> {
+  // Literal IPs are already handled by isBlockedUrl; skip DNS for them.
+  if (isIP(host)) return false;
+  try {
+    const records = await lookup(host, { all: true });
+    return records.some((r) => isPrivateIp(r.address));
+  } catch {
+    // Unresolvable host — Cloudinary's fetch would fail anyway.
+    return true;
+  }
 }
 
 /**
@@ -39,6 +63,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'Image URL must start with http:// or https://.' }, { status: 400 });
     }
     if (isBlockedUrl(parsed)) {
+      return NextResponse.json({ ok: false, error: 'That URL is not allowed.' }, { status: 400 });
+    }
+    if (await resolvesToPrivate(parsed.hostname)) {
       return NextResponse.json({ ok: false, error: 'That URL is not allowed.' }, { status: 400 });
     }
 

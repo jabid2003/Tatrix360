@@ -35,12 +35,18 @@ export default async function AdminLayout({
             </span>
             <LogoutButton />
           </div>
-          <nav className="flex gap-1 px-4 pb-3 sm:px-6" aria-label="Admin navigation">
+          <nav className="flex flex-wrap gap-1 px-4 pb-3 sm:px-6" aria-label="Admin navigation">
             {[
               { href: '/adminmja', label: 'Articles' },
               { href: '/adminmja/posts/new', label: 'New Article' },
+              { href: '/adminmja/sections', label: 'Sections' },
+              { href: '/adminmja/top-articles', label: 'Top & Latest' },
+              { href: '/adminmja/homepage-featured', label: 'Homepage' },
+              { href: '/adminmja/specs', label: 'Specs' },
+              { href: '/adminmja/top-picks', label: 'Select Top’s' },
+              { href: '/adminmja/authors', label: 'Authors' },
               { href: '/adminmja/categories', label: 'Categories' },
-              { href: '/adminmja/navbar', label: 'Navbar' },
+              { href: '/adminmja/settings', label: 'Settings' },
             ].map((link) => (
               <Link
                 key={link.href}

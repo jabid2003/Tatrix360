@@ -13,35 +13,28 @@ export function HorizontalCard({ post }: { post: Post }) {
   const postHref = getPostHref(post);
 
   const thumb = (
-    <div className="relative h-28 w-28 flex-shrink-0 self-start overflow-hidden rounded-lg bg-muted sm:h-36 sm:w-36">
+    <div className="relative h-28 w-28 flex-shrink-0 self-start bg-muted p-0.5 sm:h-36 sm:w-36">
       {postHref ? (
-        <Link href={postHref} className="block h-full w-full" aria-label={`Read: ${post.title}`}>
+        <Link href={postHref} className="flex h-full w-full items-center justify-center" aria-label={`Read: ${post.title}`}>
           {post.heroImage ? (
             <Image
               src={post.heroImage}
               alt={post.title}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 144px) 144px, 144px"
               placeholder="blur"
               blurDataURL={getImageBlurUrl(post.heroImage)}
+              width={144}
+              height={144}
             />
           ) : (
             <div aria-hidden="true" className="h-full w-full bg-muted" />
           )}
         </Link>
       ) : post.heroImage ? (
-        <Image src={post.heroImage} alt={post.title} fill className="object-cover" sizes="(max-width: 144px) 144px, 144px" />
+        <Image src={post.heroImage} alt={post.title} className="max-h-full max-w-full object-contain" sizes="(max-width: 144px) 144px, 144px" width={144} height={144} />
       ) : (
         <div aria-hidden="true" className="h-full w-full bg-muted" />
-      )}
-      {post.subcategory && post.category && postHref && (
-        <Link
-          href={`/${post.category.slug}/${post.subcategory.slug}`}
-          className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          {post.subcategory.name}
-        </Link>
       )}
     </div>
   );

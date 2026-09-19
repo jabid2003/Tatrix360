@@ -39,10 +39,10 @@ export function ArticleSidebar({ trending = [] }: ArticleSidebarProps) {
                   {post.heroImage && (
                     <Image
                       src={post.heroImage}
-                      alt=""
+                      alt={post.title}
                       width={48}
                       height={48}
-                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      className="h-12 w-12 shrink-0 rounded-lg object-contain p-0.5"
                     />
                   )}
                 </Link>
@@ -62,6 +62,7 @@ export function ArticleSidebar({ trending = [] }: ArticleSidebarProps) {
             <input
               type="email"
               placeholder="your@email.com"
+              aria-label="Email address for newsletter"
               className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-primary"
             />
             <button

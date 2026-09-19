@@ -14,14 +14,15 @@ export function AffiliateCard({ product }: { product: AffiliateProduct }) {
   return (
     <div className="my-8 overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-accent/40 to-card p-5">
       <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-32">
+        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-muted p-0.5 sm:w-32">
           {product.image ? (
             <Image
               src={product.image}
               alt={product.name}
-              fill
               sizes="(max-width: 640px) 100vw, 128px"
-              className="object-cover"
+              className="h-full w-auto object-contain"
+              width={128}
+              height={128}
             />
           ) : null}
         </div>
@@ -34,7 +35,7 @@ export function AffiliateCard({ product }: { product: AffiliateProduct }) {
             <span className="text-xs text-muted-foreground">affiliate</span>
           </div>
 
-          <h4 className="mt-2 font-display text-lg font-bold">{product.name}</h4>
+          <h4 className="mt-2 font-serif text-lg font-bold">{product.name}</h4>
           <p className="mt-1 text-sm text-muted-foreground">{product.description}</p>
 
           <ul className="mt-3 flex flex-wrap gap-1.5">

@@ -5,14 +5,13 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // During build or when env vars aren't set, create a no-op client that
 // returns empty results instead of crashing the build.
+// NOTE: per-request timeouts are not configured here because the installed
+// @supabase/supabase-js version does not support db.statement_timeout /
+// db.request_timeout options. Add a fetch wrapper with AbortController if
+// query timeouts are ever needed.
 const supabase =
   supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey, {
-        db: {
-          statement_timeout: 30_000,
-          request_timeout: 30_000,
-        },
-      })
+    ? createClient(supabaseUrl, supabaseAnonKey)
     : createClient('https://placeholder.supabase.co', 'placeholder-key');
 
 export { supabase };

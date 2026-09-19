@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { createSessionToken, ADMIN_SESSION_COOKIE } from '@/lib/session';
 import { checkRateLimit } from '@/lib/rate-limit';
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, Buffer.alloc(bufA.length));
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -37,7 +48,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (typeof password !== 'string' || password !== adminPassword) {
+  if (typeof password !== 'string' || !timingSafeEqual(password, adminPassword)) {
     return NextResponse.json(
       { ok: false, error: 'Incorrect password.' },
       { status: 401 }
@@ -58,7 +69,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true });
   response.cookies.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' || !!process.env.VERCEL,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 7,

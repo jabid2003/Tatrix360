@@ -35,7 +35,7 @@ export function CategoryTruncate({
           <li key={link.href}>
             <Link
               href={link.href}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               {link.label}
             </Link>
@@ -47,7 +47,7 @@ export function CategoryTruncate({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5 md:hidden"
+          className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:hidden"
         >
           See more
           <ChevronDown className="h-3.5 w-3.5" />
@@ -58,7 +58,7 @@ export function CategoryTruncate({
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted md:hidden"
+          className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:hidden"
         >
           Show less
         </button>
