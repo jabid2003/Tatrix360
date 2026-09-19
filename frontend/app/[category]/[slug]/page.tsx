@@ -99,9 +99,9 @@ export async function generateMetadata({
   }
 
   // Legacy post fallback.
-  const result = await getPostByCategoryAndSlug(params.category, params.slug);
+  const result = await getPostByCategoryAndSlug(params.category, params.slug).catch(() => null);
 
-  if (result.status === 'not-found') {
+  if (!result || result.status === 'not-found') {
     return {};
   }
 
@@ -160,7 +160,7 @@ export default async function ArticlePage({
   if (mainCat) {
     const found = await getSectionByCategoryAndSlug(params.category, params.slug).catch(() => null);
     if (found) {
-      const { articles, total } = await getArticlesBySection(found.section.id, 6, 0);
+      const { articles, total } = await getArticlesBySection(found.section.id, 6, 0).catch(() => ({ articles: [], total: 0 }));
       const items = articles.map((a) => toCardItem(a, found.category.slug));
       return (
         <main className="container-page py-8">
@@ -230,7 +230,7 @@ export default async function ArticlePage({
 
       // If it's a listicle, delegate to the dedicated listicle component
       if (article.articleType === 'listicle') {
-        const items = await getArticleItems(article.id, false);
+        const items = await getArticleItems(article.id, false).catch(() => []);
         const readAlsoArticles =
           article.readAlsoIds && article.readAlsoIds.length > 0
             ? await getArticlesByIds(article.readAlsoIds).catch(() => [])
@@ -252,7 +252,7 @@ export default async function ArticlePage({
       }
 
       const related = article.sectionId
-        ? (await getArticlesBySection(article.sectionId, 7, 0)).articles.filter((a) => a.id !== article.id).slice(0, 6)
+        ? (await getArticlesBySection(article.sectionId, 7, 0).catch(() => ({ articles: [], total: 0 }))).articles.filter((a) => a.id !== article.id).slice(0, 6)
         : [];
       const relatedItems = related.map((a) => toCardItem(a, mainCat.slug));
       const contentLines = article.content ? article.content.split('\n') : [];
@@ -384,9 +384,9 @@ export default async function ArticlePage({
   }
 
   // ── Legacy post fallback (old posts/categories tables) ─────────────────
-  const result = await getPostByCategoryAndSlug(params.category, params.slug);
+  const result = await getPostByCategoryAndSlug(params.category, params.slug).catch(() => null);
 
-  if (result.status === 'not-found') {
+  if (!result || result.status === 'not-found') {
     notFound();
   }
 
@@ -404,7 +404,7 @@ export default async function ArticlePage({
         : [];
 
   const related = post.category
-    ? await getPosts({ categorySlug: post.category.slug, pageSize: 6 })
+    ? await getPosts({ categorySlug: post.category.slug, pageSize: 6 }).catch(() => [])
     : [];
 
   const relatedPosts = related
@@ -412,7 +412,7 @@ export default async function ArticlePage({
     .slice(0, 4);
 
   const readAlsoPosts = post.readAlsoIds && post.readAlsoIds.length > 0
-    ? await getPostsByIds(post.readAlsoIds)
+    ? await getPostsByIds(post.readAlsoIds).catch(() => [])
     : [];
 
   const structuredData = {
