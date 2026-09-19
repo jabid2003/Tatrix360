@@ -1,11 +1,14 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getPosts, getCategories, getSubcategoriesByCategory } from '@/lib/data';
+import { getPosts, getCategories } from '@/lib/data';
 import { PostCard } from '@/components/site/post-card';
 import { FadeInWhenVisible } from '@/components/site/fade-in-when-visible';
 
 export const revalidate = 60;
 export const dynamicParams = true;
+// Force dynamic: root layout reads request headers — on-demand ISR prerender
+// of unlisted paths throws DYNAMIC_SERVER_USAGE in production.
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
   const categories = await getCategories();
@@ -20,14 +23,19 @@ export async function generateMetadata({
   const categories = await getCategories();
   const category = categories.find((item) => item.slug === params.slug);
 
+  const title = category ? `${category.name} — Tatrix360` : 'Category — Tatrix360';
+  const description = category?.description ?? `Browse ${category?.name ?? 'category'} stories on Tatrix360.`;
   return {
     title: category?.name,
-    description: category?.description,
+    description,
+    alternates: { canonical: `/category/${params.slug}` },
     openGraph: {
-      title: category?.name,
-      description: category?.description,
+      title,
+      description,
+      url: `/category/${params.slug}`,
       type: 'website',
     },
+    twitter: { card: 'summary', title, description },
   };
 }
 
@@ -36,10 +44,9 @@ export default async function CategoryPage({
 }: {
   params: { slug: string };
 }) {
-  const [posts, categories, subcategories] = await Promise.all([
+  const [posts, categories] = await Promise.all([
     getPosts({ categorySlug: params.slug, pageSize: 20 }),
     getCategories(),
-    getSubcategoriesByCategory(params.slug),
   ]);
 
   const category = categories.find((item) => item.slug === params.slug);
@@ -87,33 +94,9 @@ export default async function CategoryPage({
           )}
         </header>
 
-        {/* Menus / submenus section — View-all lands here */}
-        {subcategories.length > 0 && (
-          <section className="mb-10" aria-label="Sections">
-            <p className="section-label mb-3">Browse {category.name}</p>
-            <nav className="flex flex-wrap gap-2.5" aria-label="Subcategories">
-              {subcategories.map((sub) => (
-                <Link
-                  key={sub.id}
-                  href={`/category/${category.slug}/${sub.slug}`}
-                  className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
-                >
-                  {sub.name}
-                </Link>
-              ))}
-              <Link
-                href={`/category/${category.slug}`}
-                className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                All {category.name}
-              </Link>
-            </nav>
-          </section>
-        )}
-
         {posts.length > 0 ? (
           <FadeInWhenVisible>
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
               {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
@@ -137,15 +120,6 @@ export default async function CategoryPage({
                   className="inline-flex items-center rounded-full border border-border px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                 >
                   {c.name}
-                </Link>
-              ))}
-              {subcategories.map((sub) => (
-                <Link
-                  key={sub.id}
-                  href={`/category/${category.slug}/${sub.slug}`}
-                  className="inline-flex items-center rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                >
-                  {category.name} · {sub.name}
                 </Link>
               ))}
             </div>

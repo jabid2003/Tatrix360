@@ -12,6 +12,8 @@ const LIMITS: Record<string, { max: number; windowMs: number }> = {
   search: { max: 30, windowMs: 60 * 1000 },
   views: { max: 60, windowMs: 60 * 1000 },
   'admin-login': { max: 5, windowMs: 60 * 60 * 1000 },
+  // General admin API mutations (checked in middleware for non-GET /api/admin/*).
+  'admin-api': { max: 180, windowMs: 60 * 1000 },
 };
 
 export async function checkRateLimit(

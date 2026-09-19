@@ -1,26 +1,24 @@
-import { getNavbarLinks } from '@/lib/navbar';
-import { getCategories, getPostsByCategory } from '@/lib/data';
-import { NavbarClient } from './navbar-client';
-import type { Post } from '@/lib/types';
+import { getNavbarCategories } from '@/lib/sections';
+import { NavbarClient, type FlatNavLink } from './navbar-client';
 
 export default async function Navbar() {
-  const [links, categories] = await Promise.all([
-    getNavbarLinks().catch(() => []),
-    getCategories().catch(() => []),
-  ]);
+  let links: FlatNavLink[] = [
+    { id: 'home', label: 'Home', href: '/' },
+  ];
 
-  // One latest article per category, for the auto-sliding "Latest" ticker.
-  const latestByCategory: Post[] = [];
-  for (const cat of categories) {
-    let posts: Post[] = [];
-    try {
-      const res = await getPostsByCategory(cat.slug, 1, 1);
-      posts = Array.isArray(res) ? res : res.posts ?? [];
-    } catch {
-      posts = [];
+  try {
+    const cats = await getNavbarCategories().catch(() => []);
+    if (cats.length > 0) {
+      const dbLinks: FlatNavLink[] = cats.map((c) => ({
+        id: c.slug,
+        label: c.displayName,
+        href: `/${c.slug}`,
+      }));
+      links = [...links, ...dbLinks];
     }
-    if (posts[0]) latestByCategory.push(posts[0]);
+  } catch {
+    // DB failed; Home remains.
   }
 
-  return <NavbarClient links={links} latest={latestByCategory} />;
+  return <NavbarClient links={links} />;
 }

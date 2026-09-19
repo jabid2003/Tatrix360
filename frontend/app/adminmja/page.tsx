@@ -1,21 +1,65 @@
 import Link from 'next/link';
-import { Plus, Pencil } from 'lucide-react';
-import { getAdminPosts } from '@/lib/data';
-import { formatDate } from '@/lib/utils';
-import { DeletePostButton } from '@/components/site/admin/delete-post-button';
+import { Plus, Search } from 'lucide-react';
+import { getAdminArticles } from '@/lib/sections';
+import { ArticleBulkManager } from '@/components/site/admin/article-bulk-manager';
 
-export default async function AdminDashboardPage() {
-  const posts = await getAdminPosts();
+export const dynamic = 'force-dynamic';
+
+const FILTERS: { key: string; label: string; hint?: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'published', label: 'Published' },
+  { key: 'latest', label: 'Latest' },
+  { key: 'pinned', label: 'Pinned' },
+  { key: 'draft', label: 'Drafts' },
+  { key: 'hidden', label: 'Hidden' },
+  { key: 'listicle', label: 'Listicles' },
+];
+
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: { filter?: string; q?: string };
+}) {
+  const filter = searchParams.filter ?? 'all';
+  const q = (searchParams.q ?? '').trim().toLowerCase();
+
+  const articles = await getAdminArticles(
+    filter === 'published'
+      ? { status: 'Published' }
+      : filter === 'latest'
+        ? { onlyLatest: true }
+        : filter === 'pinned'
+          ? { onlyPinned: true }
+          : filter === 'draft'
+            ? { status: 'Draft' }
+            : filter === 'hidden'
+              ? { hidden: true }
+              : filter === 'listicle'
+                ? { articleType: 'listicle' }
+                : {}
+  );
+
+  // Admin global search (A5): title + slug, applied after the tab filter.
+  const visible = q
+    ? articles.filter(
+        (a) =>
+          a.title.toLowerCase().includes(q) ||
+          a.slug.toLowerCase().includes(q)
+      )
+    : articles;
+
+  const counts = filter === 'all' ? articles.length : undefined;
 
   return (
     <main className="container-page py-8 sm:py-12">
-      <div className="mb-8 flex items-center justify-between gap-4">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
             Articles
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {posts.length} {posts.length === 1 ? 'article' : 'articles'} total
+            {articles.length} {articles.length === 1 ? 'article' : 'articles'}
+            {counts !== undefined ? ' total' : ` — ${filter}`}
           </p>
         </div>
 
@@ -28,63 +72,70 @@ export default async function AdminDashboardPage() {
         </Link>
       </div>
 
-      {posts.length === 0 ? (
+      <nav className="mb-4 flex flex-wrap gap-1.5" aria-label="Article filters">
+        {FILTERS.map((f) => (
+          <Link
+            key={f.key}
+            href={`/adminmja?filter=${f.key}${q ? `&q=${encodeURIComponent(searchParams.q ?? '')}` : ''}`}
+            aria-current={filter === f.key ? 'page' : undefined}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              filter === f.key
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {f.label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Admin search across titles + slugs */}
+      <form method="GET" action="/adminmja" className="mb-6 flex gap-2">
+        <input type="hidden" name="filter" value={filter} />
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            name="q"
+            defaultValue={searchParams.q ?? ''}
+            placeholder="Search articles by title or slug..."
+            className="w-full rounded-xl border border-input bg-background py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-primary"
+          />
+        </div>
+        <button
+          type="submit"
+          className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:shadow-glow"
+        >
+          Search
+        </button>
+        {q && (
+          <Link
+            href={`/adminmja?filter=${filter}`}
+            className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
+
+      {visible.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border px-5 py-16 text-center">
           <p className="text-muted-foreground">
-            No articles yet. Create your first one.
+            {filter === 'all'
+              ? 'No articles yet. Create sections first, then publish your first article.'
+              : `No articles match the "${filter}" filter.`}
           </p>
+          {filter === 'all' && (
+            <Link
+              href="/adminmja/sections"
+              className="mt-4 inline-block rounded-xl border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+            >
+              Manage sections
+            </Link>
+          )}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                      post.status === 'Published'
-                        ? 'bg-primary/10 text-primary'
-                        : post.status === 'Draft'
-                          ? 'bg-muted text-muted-foreground'
-                          : 'bg-destructive/10 text-destructive'
-                    }`}
-                  >
-                    {post.status || 'Draft'}
-                  </span>
-
-                  {post.category && (
-                    <span className="text-xs text-muted-foreground">
-                      {post.category.name}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="mt-1.5 truncate font-serif text-base font-bold">
-                  {post.title}
-                </h3>
-
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {post.author?.name ?? 'No author'} · {formatDate(post.publishedAt) || 'Not published'}
-                </p>
-              </div>
-
-              <div className="flex flex-shrink-0 items-center gap-2">
-                <Link
-                  href={`/adminmja/posts/${post.id}/edit`}
-                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
-                </Link>
-
-                <DeletePostButton postId={post.id} postTitle={post.title} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <ArticleBulkManager articles={visible} />
       )}
     </main>
   );

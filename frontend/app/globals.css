@@ -70,6 +70,12 @@
     @apply bg-primary/20;
   }
 
+  /* Global keyboard focus indicator (accessibility) */
+  :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -267,6 +273,55 @@
 
 .loading-slide {
   animation: loading-slide 1.2s ease-in-out infinite;
+}
+
+/* ── Smooth page transitions ── */
+.page-transition {
+  animation: page-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Smooth link underline ── */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ── Smooth image zoom on hover ── */
+.img-zoom {
+  overflow: hidden;
+}
+.img-zoom img {
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.img-zoom:hover img {
+  transform: scale(1.05);
+}
+
+/* ── Smooth accordion expand ── */
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.2s ease;
+}
+
+/* ── Smooth button press ── */
+.btn-press {
+  transition: transform 0.15s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.btn-press:active {
+  transform: scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {

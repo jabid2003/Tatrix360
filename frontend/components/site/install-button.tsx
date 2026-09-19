@@ -23,11 +23,16 @@ export function InstallButton() {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     }
 
+    function onInstalled() {
+      setInstalled(true);
+    }
+
     window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => setInstalled(true));
+    window.addEventListener('appinstalled', onInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', onInstalled);
     };
   }, []);
 

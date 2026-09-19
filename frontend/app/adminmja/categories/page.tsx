@@ -1,29 +1,22 @@
-import type { Metadata } from 'next';
-import { getCategories, getSubcategories } from '@/lib/data';
-import { CategoryManager } from '@/components/site/admin/category-manager';
+import { getNavbarCategories, createMainCategory, updateMainCategory, deleteMainCategory, reorderMainCategories, getMainCategories } from '@/lib/sections';
+import { MainCategoryManager } from '@/components/site/admin/main-category-manager';
 
-export const metadata: Metadata = {
-  title: 'Categories',
-};
+export const dynamic = 'force-dynamic';
 
-export default async function AdminCategoriesPage() {
-  const [categories, subcategories] = await Promise.all([
-    getCategories(),
-    getSubcategories(true),
-  ]);
-
+export default async function CategoriesAdminPage() {
+  const cats = await getNavbarCategories();
+  const all = await getMainCategories();
   return (
-    <main className="container-page max-w-4xl py-8 sm:py-12">
+    <main className="container-page py-8 sm:py-12">
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
-          Category Management
+          Navigation Categories
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Organize main categories and their subcategories for the site navigation.
+          Manage the main navigation categories. Reorder, hide, or edit. Home is a static link always shown first.
         </p>
       </div>
-
-      <CategoryManager categories={categories} subcategories={subcategories} />
+      <MainCategoryManager initialCategories={all} />
     </main>
   );
 }

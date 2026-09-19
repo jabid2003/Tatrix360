@@ -4,7 +4,11 @@ export interface Author {
   slug: string;
   bio?: string;
   avatar?: string;
+  /** Canonical avatar column (new). Falls back to legacy `avatar`. */
+  avatarUrl?: string;
   role?: string;
+  websiteUrl?: string;
+  isActive?: boolean;
 }
 
 export interface Category {
@@ -13,6 +17,9 @@ export interface Category {
   slug: string;
   description?: string;
   sortOrder?: number;
+  displayOrder?: number;
+  showInNavbar?: boolean;
+  isActive?: boolean;
 }
 
 export interface Tag {
@@ -53,6 +60,16 @@ export interface Post {
   views?: number;
   readAlso?: Post[];
   readAlsoIds?: number[];
+  isLatest?: boolean;
+  isPinned?: boolean;
+  latestOrder?: number;
+  pinnedOrder?: number;
+  isVisible?: boolean;
+  articleType?: 'standard' | 'listicle';
+  introContent?: string;
+  conclusionContent?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MenuItem {

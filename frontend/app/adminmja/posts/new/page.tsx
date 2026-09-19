@@ -1,14 +1,10 @@
-import { getCategories, getAuthors, getAdminPosts, getTags, getSubcategories } from '@/lib/data';
-import { ArticleForm } from '@/components/site/admin/article-form';
+import { getMainCategories } from '@/lib/sections';
+import { NewArticleForm } from '@/components/site/admin/new-article-form';
+
+export const dynamic = 'force-dynamic';
 
 export default async function NewArticlePage() {
-  const [categories, authors, allPosts, allTags, subcategories] = await Promise.all([
-    getCategories(),
-    getAuthors(),
-    getAdminPosts(),
-    getTags(),
-    getSubcategories(),
-  ]);
+  const mainCategories = await getMainCategories();
 
   return (
     <main className="container-page max-w-3xl py-8 sm:py-12">
@@ -16,14 +12,15 @@ export default async function NewArticlePage() {
         New Article
       </h1>
 
-      <ArticleForm
-        categories={categories}
-        subcategories={subcategories}
-        authorNames={authors.map((a) => a.name)}
-        mode="create"
-        allPosts={allPosts}
-        allTags={allTags}
-      />
+      {mainCategories.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border px-5 py-16 text-center">
+          <p className="text-muted-foreground">
+            No main categories found. Run supabase/RESET_NEW_ARCHITECTURE.sql first.
+          </p>
+        </div>
+      ) : (
+        <NewArticleForm mainCategories={mainCategories} mode="create" />
+      )}
     </main>
   );
 }

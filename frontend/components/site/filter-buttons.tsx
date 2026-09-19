@@ -19,7 +19,7 @@ export function FilterButtons({ items, active, onChange }: FilterButtonsProps) {
           key={item.value}
           type="button"
           onClick={() => onChange(item.value)}
-          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
             active === item.value
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'border border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground'

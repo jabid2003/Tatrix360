@@ -26,10 +26,9 @@ function createAdminClient(): SupabaseClient {
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
-    db: {
-      statement_timeout: 30_000,
-      request_timeout: 30_000,
-    },
+    // NOTE: db.statement_timeout / db.request_timeout are not supported by
+    // the installed @supabase/supabase-js version, so they are intentionally
+    // omitted here.
   });
 }
 

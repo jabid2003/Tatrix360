@@ -1,3 +1,8 @@
+/**
+ * @deprecated LEGACY data layer (posts / categories / tags tables).
+ * New code MUST use `@/lib/sections` (main_categories → category_sections → articles).
+ * This file is kept only for backward compatibility with legacy routes.
+ */
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { Post, Category, Author, Tag, MenuItem, Subcategory } from '@/lib/types';
@@ -45,6 +50,9 @@ interface CategoryRow {
   slug: string;
   description: string | null;
   sort_order: number;
+  display_order?: number | null;
+  show_in_navbar?: boolean | null;
+  is_active?: boolean | null;
 }
 interface AuthorRow {
   id: number;
@@ -52,7 +60,10 @@ interface AuthorRow {
   slug: string;
   bio: string | null;
   avatar: string | null;
+  avatar_url?: string | null;
   role: string | null;
+  website_url?: string | null;
+  is_active?: boolean | null;
 }
 interface TagRow {
   id: number;
@@ -86,6 +97,15 @@ interface PostRow {
   views: number;
   published_at: string | null;
   read_also_ids: number[] | null;
+  is_latest?: boolean | null;
+  is_pinned?: boolean | null;
+  latest_order?: number | null;
+  pinned_order?: number | null;
+  is_visible?: boolean | null;
+  article_type?: string | null;
+  intro_content?: string | null;
+  conclusion_content?: string | null;
+  updated_at?: string | null;
   categories: CategoryRow | null;
   authors: AuthorRow | null;
   post_tags: { tags: TagRow }[];
@@ -103,10 +123,24 @@ function mapCategory(c: CategoryRow): Category {
     slug: c.slug,
     description: c.description ?? undefined,
     sortOrder: c.sort_order,
+    displayOrder: c.display_order ?? c.sort_order,
+    showInNavbar: c.show_in_navbar ?? true,
+    isActive: c.is_active ?? true,
   };
 }
 function mapAuthor(a: AuthorRow): Author {
-  return { id: a.id, name: a.name, slug: a.slug, bio: a.bio ?? undefined, avatar: a.avatar ?? undefined, role: a.role ?? undefined };
+  const avatar = (a as unknown as { avatar_url?: string | null }).avatar_url ?? a.avatar ?? undefined;
+  return {
+    id: a.id,
+    name: a.name,
+    slug: a.slug,
+    bio: a.bio ?? undefined,
+    avatar: avatar,
+    avatarUrl: avatar,
+    role: a.role ?? undefined,
+    websiteUrl: (a as unknown as { website_url?: string | null }).website_url ?? undefined,
+    isActive: (a as unknown as { is_active?: boolean | null }).is_active ?? true,
+  };
 }
 function mapTag(t: TagRow): Tag {
   return { id: t.id, name: t.name, slug: t.slug };
@@ -158,6 +192,16 @@ function mapPost(p: PostRow): Post {
     status: p.status as Post['status'] | undefined,
     views: p.views,
     readAlsoIds: p.read_also_ids ?? undefined,
+    isLatest: p.is_latest ?? true,
+    isPinned: p.is_pinned ?? false,
+    latestOrder: p.latest_order ?? 0,
+    pinnedOrder: p.pinned_order ?? 0,
+    isVisible: p.is_visible ?? true,
+    articleType: (p.article_type as Post['articleType']) ?? 'standard',
+    introContent: p.intro_content ?? undefined,
+    conclusionContent: p.conclusion_content ?? undefined,
+    createdAt: (p as unknown as { created_at?: string }).created_at ?? undefined,
+    updatedAt: p.updated_at ?? undefined,
   };
 }
 
@@ -660,14 +704,26 @@ export async function getCategories(): Promise<Category[]> {
     const { data, error } = await supabase
       .from('categories')
       .select('*')
-      .order('sort_order', { ascending: true });
-
+      .order('display_order', { ascending: true });
     if (error) {
       console.error('[supabase] getCategories error:', error.message);
       return [];
     }
     return (data as CategoryRow[]).map(mapCategory);
   }, { label: 'getCategories' });
+}
+
+export async function getNavbarCategoriesLegacy(): Promise<Category[]> {
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .eq('show_in_navbar', true)
+      .order('display_order', { ascending: true });
+    if (error) return getCategories();
+    return (data as CategoryRow[]).map(mapCategory);
+  }, { label: 'getNavbarCategoriesLegacy' });
 }
 
 export async function getAuthors(): Promise<Author[]> {
@@ -677,6 +733,29 @@ export async function getAuthors(): Promise<Author[]> {
     return [];
   }
   return (data as AuthorRow[]).map(mapAuthor);
+}
+
+export async function updateCategoryLegacy(id: number, input: Partial<{ name: string; slug: string; description: string; displayOrder: number; showInNavbar: boolean; isActive: boolean }>): Promise<{ ok: boolean; error?: string }> {
+  const patch: Record<string, unknown> = {};
+  if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.slug !== undefined) patch.slug = input.slug.trim().toLowerCase();
+  if (input.description !== undefined) patch.description = input.description.trim() || null;
+  if (input.displayOrder !== undefined) patch.display_order = input.displayOrder;
+  if (input.displayOrder !== undefined) patch.sort_order = input.displayOrder;
+  if (input.showInNavbar !== undefined) patch.show_in_navbar = !!input.showInNavbar;
+  if (input.isActive !== undefined) patch.is_active = !!input.isActive;
+  patch.updated_at = new Date().toISOString();
+  const { error } = await supabaseAdmin.from('categories').update(patch).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function deleteCategoryLegacy(id: number): Promise<{ ok: boolean; error?: string }> {
+  const { count } = await supabaseAdmin.from('posts').select('id', { count: 'exact', head: true }).eq('category_id', id);
+  if (count && count > 0) return { ok: false, error: 'Cannot delete category with posts.' };
+  const { error } = await supabaseAdmin.from('categories').delete().eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function getTags(): Promise<Tag[]> {
@@ -1168,6 +1247,59 @@ export async function getPostsByCategory(
       total: count ?? 0,
     };
   }, { label: `getPostsByCategory:${categorySlug}` });
+}
+
+// Latest / Pinned helpers — deterministic sort: order -> published_at -> id
+export async function getLatestPostsPaginated(limit = 6, offset = 0): Promise<{ posts: Post[]; total: number }> {
+  return retry(async () => {
+    // Preferred: explicitly-marked latest posts (is_latest = true).
+    const preferred = await queryLatestPostsPaginated(limit, offset, true);
+    if (preferred.posts.length > 0 || preferred.total > 0) return preferred;
+    // Fallback: if nothing is marked latest (or the flag column is missing),
+    // return the most recent published posts so the feed never renders empty.
+    return queryLatestPostsPaginated(limit, offset, false);
+  }, { label: 'getLatestPostsPaginated' });
+}
+
+async function queryLatestPostsPaginated(
+  limit: number,
+  offset: number,
+  onlyLatest: boolean
+): Promise<{ posts: Post[]; total: number }> {
+  let q: any = supabase
+    .from('posts')
+    .select(`*, categories!posts_category_id_fkey (*), authors!posts_author_id_fkey (*), post_tags ( tags (*) ), post_categories ( categories (*) ), subcategories (*)`, { count: 'exact' })
+    .eq('status', 'Published')
+    .eq('is_visible', true);
+  if (onlyLatest) q = q.eq('is_latest', true);
+  q = q.order('latest_order', { ascending: true })
+    .order('published_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1);
+  const { data, error, count } = await q;
+  if (error) return { posts: [], total: 0 };
+  return { posts: (data as unknown as PostRow[]).map(mapPost), total: count ?? 0 };
+}
+
+export async function getPinnedPosts(limit = 10): Promise<Post[]> {
+  return retry(async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`*, categories!posts_category_id_fkey (*), authors!posts_author_id_fkey (*), post_tags ( tags (*) ), post_categories ( categories (*) ), subcategories (*)`)
+      .eq('status', 'Published')
+      .eq('is_visible', true)
+      .eq('is_pinned', true)
+      .order('pinned_order', { ascending: true })
+      .order('published_at', { ascending: false })
+      .limit(limit);
+    if (error) return [];
+    return (data as unknown as PostRow[]).map(mapPost);
+  }, { label: 'getPinnedPosts' });
+}
+
+export async function getLatestPosts(limit = 3): Promise<Post[]> {
+  const { posts } = await getLatestPostsPaginated(limit, 0);
+  return posts;
 }
 
 export async function getPostsByIds(ids: number[]): Promise<Post[]> {

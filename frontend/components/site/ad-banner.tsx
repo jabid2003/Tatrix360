@@ -17,7 +17,7 @@ const DIMENSIONS: Record<Placement, { desktop: string; mobile: string; minHeight
 
 function AdLabel() {
   return (
-    <p className="flex items-center justify-center gap-1.5 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">
+      <p className="flex items-center justify-center gap-1.5 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
       <Megaphone className="h-3 w-3" />
       Advertisement
     </p>
@@ -44,12 +44,12 @@ export function AdBanner({ placement, adSlot, className = '' }: AdBannerProps) {
             {/* Desktop: 970×90, Tablet: 728×90, Mobile: 320×50 */}
             <div className="hidden w-full sm:block">
               <div className="mx-auto flex h-[90px] w-full max-w-[728px] items-center justify-center lg:max-w-[970px]">
-                <p className="text-xs text-muted-foreground/40">{dim.desktop}</p>
+                <p className="text-xs text-muted-foreground">{dim.desktop}</p>
               </div>
             </div>
             <div className="flex w-full items-center justify-center sm:hidden">
               <div className="flex h-[50px] w-full max-w-[320px] items-center justify-center">
-                <p className="text-[10px] text-muted-foreground/40">{dim.mobile}</p>
+                <p className="text-[10px] text-muted-foreground">{dim.mobile}</p>
               </div>
             </div>
           </div>
@@ -69,8 +69,8 @@ export function AdBanner({ placement, adSlot, className = '' }: AdBannerProps) {
       >
         <div className="flex h-full min-h-[250px] flex-col items-center justify-center p-6 lg:min-h-[600px]">
           <Megaphone className="h-8 w-8 text-muted-foreground/30" />
-          <p className="mt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Advertisement</p>
-          <p className="mt-1 text-[10px] text-muted-foreground/30">{dim.desktop}</p>
+          <p className="mt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Advertisement</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">{dim.desktop}</p>
         </div>
       </div>
     );
@@ -89,13 +89,13 @@ export function AdBanner({ placement, adSlot, className = '' }: AdBannerProps) {
       {/* Desktop: 728×90 leaderboard */}
       <div className="hidden sm:block">
         <div className="mx-auto flex h-[90px] w-full max-w-[728px] items-center justify-center">
-          <p className="text-xs text-muted-foreground/40">{dim.desktop}</p>
+          <p className="text-xs text-muted-foreground">{dim.desktop}</p>
         </div>
       </div>
       {/* Mobile: 300×250 */}
       <div className="flex sm:hidden">
         <div className="mx-auto flex h-[250px] w-full max-w-[300px] items-center justify-center">
-          <p className="text-[10px] text-muted-foreground/40">{dim.mobile}</p>
+          <p className="text-[10px] text-muted-foreground">{dim.mobile}</p>
         </div>
       </div>
     </div>
