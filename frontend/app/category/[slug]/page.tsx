@@ -23,14 +23,19 @@ export async function generateMetadata({
   const categories = await getCategories();
   const category = categories.find((item) => item.slug === params.slug);
 
+  const title = category ? `${category.name} — Tatrix360` : 'Category — Tatrix360';
+  const description = category?.description ?? `Browse ${category?.name ?? 'category'} stories on Tatrix360.`;
   return {
     title: category?.name,
-    description: category?.description,
+    description,
+    alternates: { canonical: `/category/${params.slug}` },
     openGraph: {
-      title: category?.name,
-      description: category?.description,
+      title,
+      description,
+      url: `/category/${params.slug}`,
       type: 'website',
     },
+    twitter: { card: 'summary', title, description },
   };
 }
 

@@ -30,7 +30,7 @@ export async function TopArticles() {
                   >
                     <span
                       aria-hidden="true"
-                      className="flex-shrink-0 font-serif text-base font-bold text-muted-foreground/40 transition-colors group-hover:text-primary"
+                      className="flex-shrink-0 font-serif text-base font-bold text-muted-foreground transition-colors group-hover:text-primary"
                     >
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -48,7 +48,7 @@ export async function TopArticles() {
                   </Link>
                 ) : (
                   <div className="flex items-start gap-3 px-4 py-3 sm:px-5">
-                    <span aria-hidden="true" className="flex-shrink-0 font-serif text-base font-bold text-muted-foreground/40">
+                    <span aria-hidden="true" className="flex-shrink-0 font-serif text-base font-bold text-muted-foreground">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span className="line-clamp-2 block text-sm font-medium leading-snug">

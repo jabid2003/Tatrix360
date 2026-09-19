@@ -76,7 +76,7 @@ export async function HomepageFeaturedSection() {
                       <div className="relative h-16 w-20 flex-shrink-0 bg-muted p-0.5">
                         <Image
                           src={item.article!.thumbnailUrl}
-                          alt=""
+                          alt={item.article!.title}
                           className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
                           width={80}
                           height={64}

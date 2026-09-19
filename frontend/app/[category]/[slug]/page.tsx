@@ -315,6 +315,7 @@ export default async function ArticlePage({
                 src={article.thumbnailUrl}
                 alt={article.title}
                 priority
+                fetchPriority="high"
                 className="max-h-full max-w-full object-contain"
                 sizes="(max-width: 1024px) 100vw, 72rem"
                 placeholder="blur"

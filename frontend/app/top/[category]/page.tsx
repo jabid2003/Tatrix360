@@ -14,7 +14,15 @@ const MAP: Record<string, { cat: 'mobile'|'laptop'|'gadget'; label: string }> = 
 export async function generateMetadata({ params }: { params: { category: string } }) {
   const m = MAP[params.category];
   if (!m) return {};
-  return { title: `Top ${m.label} — Tatrix360`, description: `Top ${m.label.toLowerCase()} curated by Tatrix360 — price, key specs and full specs.` };
+  const title = `Top ${m.label} — Tatrix360`;
+  const description = `Top ${m.label.toLowerCase()} curated by Tatrix360 — price, key specs and full specs.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/top/${params.category}` },
+    openGraph: { title, description, url: `/top/${params.category}`, type: 'website' },
+    twitter: { card: 'summary', title, description },
+  };
 }
 
 export default async function TopPage({ params }: { params: { category: string } }) {

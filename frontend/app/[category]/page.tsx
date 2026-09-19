@@ -23,14 +23,19 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { category: string } }) {
   const category = await getMainCategoryBySlug(params.category);
   if (!category) return { title: 'Not Found' };
+  const title = `${category.displayName} — Tatrix360`;
+  const description = `Latest ${category.displayName} stories, guides and explainers on Tatrix360.`;
   return {
     title: category.displayName,
-    description: `Latest ${category.displayName} stories, guides and explainers on Tatrix360.`,
+    description,
+    alternates: { canonical: `/${category.slug}` },
     openGraph: {
-      title: `${category.displayName} — Tatrix360`,
-      description: `Latest ${category.displayName} stories, guides and explainers on Tatrix360.`,
+      title,
+      description,
+      url: `/${category.slug}`,
       type: 'website',
     },
+    twitter: { card: 'summary', title, description },
   };
 }
 

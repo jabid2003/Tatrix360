@@ -64,8 +64,9 @@ export function ProductGallery({ images, productName, thumbnailUrl }: ProductGal
                 className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
                   i === active ? 'border-blue-500' : 'border-border hover:border-muted-foreground/50'
                 }`}
+                aria-label={`View image ${i + 1} of ${productName}`}
               >
-                <Image src={img} alt="" width={56} height={56} className="h-full w-auto object-contain p-0.5" />
+                <Image src={img} alt={`${productName} — thumbnail ${i + 1}`} width={56} height={56} className="h-full w-auto object-contain p-0.5" />
               </button>
             ))}
             {allImages.length > 6 && (
@@ -131,7 +132,7 @@ export function ProductGallery({ images, productName, thumbnailUrl }: ProductGal
                       i === viewerIdx ? 'border-white' : 'border-white/20 hover:border-white/50'
                     }`}
                   >
-                    <Image src={img} alt="" width={28} height={28} className="h-full w-auto object-contain p-px" />
+                    <Image src={img} alt={`${productName} — thumbnail ${i + 1}`} width={28} height={28} className="h-full w-auto object-contain p-px" />
                   </button>
                 ))}
               </div>

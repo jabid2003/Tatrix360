@@ -16,7 +16,15 @@ const REVERSE: Record<string, string> = { mobile: 'mobiles', laptop: 'laptops', 
 export async function generateMetadata({ params }: { params: { category: string } }) {
   const m = MAP[params.category];
   if (!m) return {};
-  return { title: `${m.label} Specs — Tatrix360`, description: `Full specifications for ${m.label.toLowerCase()} on Tatrix360.` };
+  const title = `${m.label} Specs — Tatrix360`;
+  const description = `Full specifications for ${m.label.toLowerCase()} on Tatrix360.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/specs/${params.category}` },
+    openGraph: { title, description, url: `/specs/${params.category}`, type: 'website' },
+    twitter: { card: 'summary', title, description },
+  };
 }
 
 export default async function SpecsCategoryPage({ params }: { params: { category: string } }) {

@@ -58,6 +58,7 @@ export function HeroCarousel({ posts }: { posts: Post[] }) {
                         src={post.heroImage}
                         alt={post.title}
                         priority={i === 0}
+                        fetchPriority={i === 0 ? 'high' : 'auto'}
                         className="max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105"
                         sizes="(max-width: 1024px) 100vw, 100vw"
                         placeholder="blur"

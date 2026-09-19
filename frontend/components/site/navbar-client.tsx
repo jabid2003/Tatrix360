@@ -40,6 +40,7 @@ export function NavbarClient({ links }: { links: FlatNavLink[] }) {
 
   // Close mobile drawer on route change
   const pathnameRef = useRef('');
+  const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handler = () => {
       const path = window.location.pathname;
@@ -52,6 +53,13 @@ export function NavbarClient({ links }: { links: FlatNavLink[] }) {
     pathnameRef.current = window.location.pathname;
     return () => window.removeEventListener('popstate', handler);
   }, []);
+
+  // Remove the closed drawer (and its links/inputs) from the tab order.
+  // `aria-hidden` alone does not do this — without `inert`, keyboard users
+  // can still tab into the off-screen panel (focus "black hole").
+  useEffect(() => {
+    panelRef.current?.toggleAttribute('inert', !mobile);
+  }, [mobile]);
 
   function runMobileSearch(query: string) {
     const q = query.trim();
@@ -136,10 +144,13 @@ export function NavbarClient({ links }: { links: FlatNavLink[] }) {
       <button
         type="button"
         aria-label="Close menu"
+        aria-hidden={!mobile}
+        tabIndex={mobile ? 0 : -1}
         onClick={() => setMobile(false)}
         className={`drawer-backdrop fixed inset-0 z-[59] bg-black/30 lg:hidden ${mobile ? 'open' : ''}`}
       />
       <div
+        ref={panelRef}
         className={`drawer-panel fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-background lg:hidden ${mobile ? 'open' : ''}`}
         style={{ top: '57px' }}
         aria-hidden={!mobile}

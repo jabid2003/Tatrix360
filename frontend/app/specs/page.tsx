@@ -1,7 +1,25 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Smartphone, Laptop, Tablet, ArrowRight } from 'lucide-react';
 
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  title: 'Specs',
+  description: 'Dedicated specification hubs for Mobiles, Laptops and Gadgets on Tatrix360. Browse full specs or see our curated Top picks.',
+  alternates: { canonical: '/specs' },
+  openGraph: {
+    title: 'Specs — Tatrix360',
+    description: 'Dedicated specification hubs for Mobiles, Laptops and Gadgets. Browse full specs or see our curated Top picks.',
+    url: '/specs',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Specs — Tatrix360',
+    description: 'Dedicated specification hubs for Mobiles, Laptops and Gadgets.',
+  },
+};
 
 const CATS = [
   { slug: 'mobiles', label: 'Mobiles', desc: 'Phones, comparisons and buying guides.', icon: Smartphone, href: '/specs/mobiles', top: '/top/mobiles' },

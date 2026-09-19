@@ -71,7 +71,17 @@ function SpecIcon({ title, fallback }: { title: string; fallback?: string }) {
 export async function generateMetadata({ params }: { params: { category: string; slug: string } }) {
   const p = await getProductBySlug(params.slug).catch(() => null);
   if (!p) return {};
-  return { title: `${p.name} — Full Specs | Tatrix360`, description: p.shortDescription || p.description?.slice(0,155) || `Full specs for ${p.name}` };
+  const title = `${p.name} — Full Specs | Tatrix360`;
+  const description = p.shortDescription || p.description?.slice(0,155) || `Full specs for ${p.name}`;
+  const url = `/specs/${params.category}/${p.slug}`;
+  const images = p.thumbnailUrl ? [{ url: p.thumbnailUrl, alt: p.name }] : undefined;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, siteName: 'Tatrix360', type: 'website', images },
+    twitter: { card: 'summary_large_image', title, description, images: p.thumbnailUrl ? [p.thumbnailUrl] : undefined },
+  };
 }
 
 export default async function FullSpecPage({ params }: { params: { category: string; slug: string } }) {

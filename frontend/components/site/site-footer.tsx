@@ -54,7 +54,7 @@ export async function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Sections</h4>
+            <h2 className="text-sm font-semibold text-foreground">Sections</h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               {cats.map((c) => (
                 <li key={c.slug}>
@@ -65,7 +65,7 @@ export async function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Company</h4>
+            <h2 className="text-sm font-semibold text-foreground">Company</h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li><Link href="/about" className="transition-colors hover:text-foreground">About</Link></li>
               <li><Link href="/contact" className="transition-colors hover:text-foreground">Contact</Link></li>
@@ -75,7 +75,7 @@ export async function SiteFooter() {
 
           {showNewsletter && (
             <div>
-              <h4 className="text-sm font-semibold text-foreground">Subscribe</h4>
+              <h2 className="text-sm font-semibold text-foreground">Subscribe</h2>
               <p className="mt-3 text-sm text-muted-foreground">Weekly tech briefing, no spam.</p>
               <Link
                 href="/subscribe"
@@ -90,7 +90,7 @@ export async function SiteFooter() {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <p className="text-sm text-muted-foreground">{copyrightText}</p>
-          <p className="text-xs text-muted-foreground/60">Built with care for readers who care about tech.</p>
+          <p className="text-xs text-muted-foreground">Built with care for readers who care about tech.</p>
         </div>
       </div>
     </footer>
