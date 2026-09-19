@@ -28,6 +28,10 @@ import { ArrowLeft, ChevronRight } from 'lucide-react';
 
 export const revalidate = 60;
 export const dynamicParams = true;
+// Force dynamic: the root layout reads request headers (x-is-admin), so
+// on-demand static prerendering of unlisted paths throws DYNAMIC_SERVER_USAGE
+// in production (dev never prerenders, which is why this only failed on Vercel).
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
   try {

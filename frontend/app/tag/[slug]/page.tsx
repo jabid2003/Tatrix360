@@ -8,6 +8,9 @@ import { ArrowLeft } from 'lucide-react';
 
 export const revalidate = 60;
 export const dynamicParams = true;
+// Force dynamic: root layout reads request headers — on-demand ISR prerender
+// of unlisted paths throws DYNAMIC_SERVER_USAGE in production.
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
   const tags = await getTags();
