@@ -26,21 +26,23 @@ export default async function SpecsAdminPage({
         </Link>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {[
-          { key: undefined, label: 'All' },
-          { key: 'mobile', label: 'Mobiles' },
-          { key: 'laptop', label: 'Laptops' },
-          { key: 'gadget', label: 'Gadgets' },
-        ].map((f) => (
-          <Link key={String(f.key)} href={`/adminmja/specs${f.key ? `?category=${f.key}` : ''}`} className={`rounded-lg px-3.5 py-1.5 text-sm font-medium ${category === f.key ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted'}`}>
-            {f.label}
-          </Link>
-        ))}
-        <form className="ml-auto flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Search name..." className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-primary" />
+      <div className="mb-4 flex flex-col gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {[
+            { key: undefined, label: 'All' },
+            { key: 'mobile', label: 'Mobiles' },
+            { key: 'laptop', label: 'Laptops' },
+            { key: 'gadget', label: 'Gadgets' },
+          ].map((f) => (
+            <Link key={String(f.key)} href={`/adminmja/specs${f.key ? `?category=${f.key}` : ''}`} className={`flex-shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium ${category === f.key ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted'}`}>
+              {f.label}
+            </Link>
+          ))}
+        </div>
+        <form className="flex gap-2">
+          <input name="q" defaultValue={q} placeholder="Search name..." className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-primary" />
           {category && <input type="hidden" name="category" value={category} />}
-          <button className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted">Search</button>
+          <button className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted">Search</button>
         </form>
       </div>
 
@@ -72,9 +74,9 @@ export default async function SpecsAdminPage({
                   <p className="text-xs text-muted-foreground font-mono truncate">/{p.slug} · {p.priceText ?? '—'} {p.isExpectedPrice ? '(Expected)' : ''} · {p.specs.length} sections</p>
                 </div>
               </div>
-              <div className="flex flex-shrink-0 items-center gap-2">
-                <Link href={`/specs/${p.category === 'mobile' ? 'mobiles' : p.category === 'laptop' ? 'laptops' : 'gadgets'}/${p.slug}`} target="_blank" className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> View</Link>
-                <Link href={`/adminmja/specs/${p.id}/edit`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted flex items-center gap-1"><Pencil className="h-3.5 w-3.5" /> Edit</Link>
+              <div className="flex flex-shrink-0 items-center gap-2 overflow-x-auto scrollbar-hide">
+                <Link href={`/specs/${p.category === 'mobile' ? 'mobiles' : p.category === 'laptop' ? 'laptops' : 'gadgets'}/${p.slug}`} target="_blank" className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted"><Eye className="h-3.5 w-3.5" /> View</Link>
+                <Link href={`/adminmja/specs/${p.id}/edit`} className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted"><Pencil className="h-3.5 w-3.5" /> Edit</Link>
                 <DeleteProductButton id={p.id} name={p.name} />
               </div>
             </div>

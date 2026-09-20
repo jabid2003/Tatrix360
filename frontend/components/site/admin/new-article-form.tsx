@@ -23,6 +23,7 @@ import type { MainCategory, CategorySection, Article } from '@/lib/sections';
 import { getActiveAuthors } from '@/lib/authors';
 import type { AuthorFull } from '@/lib/authors';
 import { ReadAlsoPicker } from '@/components/site/admin/read-also-picker';
+import { RelatedProductsPicker } from '@/components/site/admin/related-products-picker';
 import { Markdown } from '@/components/site/markdown';
 
 function slugifyClient(input: string): string {
@@ -76,6 +77,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
   const [introContent, setIntroContent] = useState(initialArticle?.introContent ?? '');
   const [conclusionContent, setConclusionContent] = useState(initialArticle?.conclusionContent ?? '');
   const [readAlsoIds, setReadAlsoIds] = useState<string[]>(initialArticle?.readAlsoIds ?? []);
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>(initialArticle?.relatedProductIds ?? []);
 
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -117,14 +119,14 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
           mainCategoryId, sectionId, authorId,
           seoTitle, seoDescription, status, publishedAt,
           isVisible, isLatest, isPinned, latestOrder, pinnedOrder,
-          articleType, introContent, conclusionContent, readAlsoIds,
+          articleType, introContent, conclusionContent, readAlsoIds, relatedProductIds,
           savedAt: Date.now(),
         }));
         setLastAutosaved(new Date().toLocaleTimeString());
       } catch {}
     }, 30000);
     return () => clearInterval(t);
-  }, [title, subtitle, slug, content, thumbnailUrl, mainCategoryId, sectionId, authorId, seoTitle, seoDescription, status, publishedAt, isVisible, isLatest, isPinned, latestOrder, pinnedOrder, articleType, introContent, conclusionContent, readAlsoIds, draftKey]);
+  }, [title, subtitle, slug, content, thumbnailUrl, mainCategoryId, sectionId, authorId, seoTitle, seoDescription, status, publishedAt, isVisible, isLatest, isPinned, latestOrder, pinnedOrder, articleType, introContent, conclusionContent, readAlsoIds, relatedProductIds, draftKey]);
 
   function restoreDraft() {
     try {
@@ -153,6 +155,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
       setIntroContent(d.introContent ?? '');
       setConclusionContent(d.conclusionContent ?? '');
       if (Array.isArray(d.readAlsoIds)) setReadAlsoIds(d.readAlsoIds);
+      if (Array.isArray(d.relatedProductIds)) setRelatedProductIds(d.relatedProductIds);
     } catch {}
     setDraftNotice(null);
   }
@@ -272,6 +275,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
           introContent: introContent.trim() || undefined,
           conclusionContent: conclusionContent.trim() || undefined,
           readAlsoIds,
+          relatedProductIds: relatedProductIds.length > 0 ? relatedProductIds : undefined,
         }),
       });
       const data = await res.json();
@@ -482,6 +486,9 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
 
       {/* Read Also — plain-title links with embedded article URLs */}
       <ReadAlsoPicker articles={allArticles} value={readAlsoIds} onChange={setReadAlsoIds} />
+
+      {/* Related Products — product cards grouped by category on the article page */}
+      <RelatedProductsPicker value={relatedProductIds} onChange={setRelatedProductIds} />
 
       {/* Content — only for standard type */}
       {articleType === 'standard' && (

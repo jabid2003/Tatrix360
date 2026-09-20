@@ -33,15 +33,17 @@ export function Sidebar({ trending = [], links, linkTitle }: SidebarProps) {
         </div>
       )}
 
-      {/* Ad — Sidebar 300x250 (sticky on desktop, hidden on mobile) */}
-      <div className="hidden lg:block lg:sticky lg:top-24">
-        <AdBanner placement="sidebar" adSlot="sidebar-mpu" />
-      </div>
-
       {/* Categories with mobile truncation */}
       {links && links.length > 0 && (
         <CategoryTruncate links={links} linkTitle={linkTitle ?? 'Categories'} mobileLimit={4} />
       )}
+
+      {/* Ad — Sidebar 300x250 (sticky on desktop, hidden on mobile).
+          Kept LAST in the aside: a stuck middle element gets overlapped by
+          the content scrolling beneath it; a stuck last element cannot. */}
+      <div className="hidden lg:block lg:sticky lg:top-24">
+        <AdBanner placement="sidebar" adSlot="sidebar-mpu" />
+      </div>
     </aside>
   );
 }

@@ -23,6 +23,8 @@ import { AdBanner } from '@/components/site/ad-banner';
 import { ArticleSidebar } from '@/components/site/article-sidebar';
 import { ListicleArticle } from '@/components/site/listicle-article';
 import { getArticleItems } from '@/lib/article-items';
+import { getProductsByIds } from '@/lib/products';
+import { RelatedProducts } from '@/components/site/related-products';
 
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 
@@ -235,10 +237,14 @@ export default async function ArticlePage({
       // If it's a listicle, delegate to the dedicated listicle component
       if (article.articleType === 'listicle') {
         const items = await getArticleItems(article.id, false).catch(() => []);
-        const readAlsoArticles =
+        const [readAlsoArticles, relatedProducts] = await Promise.all([
           article.readAlsoIds && article.readAlsoIds.length > 0
-            ? await getArticlesByIds(article.readAlsoIds).catch(() => [])
-            : [];
+            ? getArticlesByIds(article.readAlsoIds).catch(() => [])
+            : Promise.resolve([]),
+          article.relatedProductIds && article.relatedProductIds.length > 0
+            ? getProductsByIds(article.relatedProductIds).catch(() => [])
+            : Promise.resolve([]),
+        ]);
         return (
           <>
             <script
@@ -250,6 +256,7 @@ export default async function ArticlePage({
               category={{ slug: mainCat.slug, displayName: mainCat.displayName }}
               items={items}
               readAlsoArticles={readAlsoArticles}
+              relatedProducts={relatedProducts}
             />
           </>
         );
@@ -262,10 +269,15 @@ export default async function ArticlePage({
       const contentLines = article.content ? article.content.split('\n') : [];
 
       // "Read also" — plain-title links to author-picked related articles.
-      const readAlsoArticles =
+      // "Related products" — product cards grouped by category.
+      const [readAlsoArticles, relatedProducts] = await Promise.all([
         article.readAlsoIds && article.readAlsoIds.length > 0
-          ? await getArticlesByIds(article.readAlsoIds).catch(() => [])
-          : [];
+          ? getArticlesByIds(article.readAlsoIds).catch(() => [])
+          : Promise.resolve([]),
+        article.relatedProductIds && article.relatedProductIds.length > 0
+          ? getProductsByIds(article.relatedProductIds).catch(() => [])
+          : Promise.resolve([]),
+      ]);
 
       return (
         <article className="container-page py-6 sm:py-10">
@@ -365,6 +377,8 @@ export default async function ArticlePage({
               ))}
             </div>
           )}
+
+          <RelatedProducts products={relatedProducts} />
 
           {relatedItems.length > 0 && (
             <section className="mx-auto mt-16 max-w-4xl border-t border-border pt-10">

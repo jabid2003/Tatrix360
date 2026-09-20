@@ -363,11 +363,55 @@ export async function getTopPicks(category: ProductCategory): Promise<{ productI
   } catch { return []; }
 }
 
-export async function setTopPicks(category: ProductCategory, orderedIds: string[]): Promise<{ ok: boolean; error?: string }> {
-  if (orderedIds.length !== 0 && orderedIds.length !== 5 && orderedIds.length !== 10) {
-    return { ok: false, error: 'Select exactly 5 or 10 products.' };
+// ---------------------------------------------------------------------------
+// Top list "about" text — one admin-written blurb per category, shown on /top/*
+// ---------------------------------------------------------------------------
+
+export async function getTopListMeta(category: ProductCategory): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.from('top_list_meta').select('about').eq('category', category).maybeSingle();
+    if (error || !data) return null;
+    return (data as { about: string | null }).about ?? null;
+  } catch { return null; }
+}
+
+export async function setTopListMeta(category: ProductCategory, about: string | null): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { error } = await supabaseAdmin
+      .from('top_list_meta')
+      .upsert({ category, about: about?.trim() || null, updated_at: new Date().toISOString() }, { onConflict: 'category' });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to save.' };
   }
-  // Replace entire category collection atomically
+}
+
+// ---------------------------------------------------------------------------
+// Related products — fetch published+visible products by id, admin order kept
+// ---------------------------------------------------------------------------
+
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .in('id', unique)
+      .eq('status', 'Published')
+      .eq('is_visible', true);
+    if (error || !data) return [];
+    const byId = new Map((data as unknown as ProductRow[]).map((r) => [r.id, mapProduct(r)]));
+    return unique.flatMap((id) => (byId.get(id) ? [byId.get(id)!] : []));
+  } catch { return []; }
+}
+
+export async function setTopPicks(category: ProductCategory, orderedIds: string[]): Promise<{ ok: boolean; error?: string }> {
+  if (orderedIds.length > 50) {
+    return { ok: false, error: 'Select at most 50 products.' };
+  }
+  // Replace entire category collection atomically (any count 1..n; 0 clears)
   const { error: delErr } = await supabaseAdmin.from('top_picks').delete().eq('category', category);
   if (delErr) return { ok: false, error: delErr.message };
   if (orderedIds.length === 0) return { ok: true };

@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     introContent: pickRawStr(body, 'introContent', 'intro_content'),
     conclusionContent: pickRawStr(body, 'conclusionContent', 'conclusion_content'),
     readAlsoIds: pickStrArray(body, 'readAlsoIds', 'read_also_ids'),
+    relatedProductIds: pickStrArray(body, 'relatedProductIds', 'related_product_ids'),
   };
 
   const result = await createArticle(input);

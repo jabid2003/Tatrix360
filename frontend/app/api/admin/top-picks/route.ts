@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { safeRevalidate as revalidatePath } from '@/lib/revalidate';
-import { getAdminProducts, getTopPicks, setTopPicks, type ProductCategory } from '@/lib/products';
+import { getAdminProducts, getTopPicks, setTopPicks, getTopListMeta, setTopListMeta, type ProductCategory } from '@/lib/products';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logAdminActivity } from '@/lib/admin-log';
 
 function isValidCategory(v: unknown): v is ProductCategory {
   return v === 'mobile' || v === 'laptop' || v === 'gadget';
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   if (!category || !isValidCategory(category)) {
     return NextResponse.json({ ok: false, error: 'category must be mobile, laptop, or gadget' }, { status: 400 });
   }
-  const [picks, all] = await Promise.all([
+  const [picks, all, about] = await Promise.all([
     (async () => {
       const ids = await getTopPicks(category);
       if (ids.length === 0) return [];
@@ -32,22 +33,28 @@ export async function GET(request: Request) {
       }).filter(Boolean);
     })(),
     getAdminProducts({ category, limit: 100 }),
+    getTopListMeta(category),
   ]);
-  return NextResponse.json({ ok: true, category, picks, products: all });
+  return NextResponse.json({ ok: true, category, picks, products: all, about: about ?? '' });
 }
 
-// PUT { category, orderedIds: string[] } -> replace top picks 5 or 10
+// PUT { category, orderedIds: string[], about?: string } -> replace top picks (any count 0..50) + about text
 export async function PUT(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || !isValidCategory(body.category)) {
     return NextResponse.json({ ok: false, error: 'category required' }, { status: 400 });
   }
   const orderedIds: string[] = Array.isArray(body.orderedIds) ? body.orderedIds : Array.isArray(body.productIds) ? body.productIds : [];
-  if (orderedIds.length !== 0 && orderedIds.length !== 5 && orderedIds.length !== 10) {
-    return NextResponse.json({ ok: false, error: 'Select exactly 5 or 10 products (or 0 to clear).' }, { status: 400 });
+  if (orderedIds.length > 50) {
+    return NextResponse.json({ ok: false, error: 'Select at most 50 products (or 0 to clear).' }, { status: 400 });
   }
   const result = await setTopPicks(body.category, orderedIds);
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  if (typeof body.about === 'string') {
+    const aboutRes = await setTopListMeta(body.category, body.about);
+    if (!aboutRes.ok) return NextResponse.json({ ok: false, error: aboutRes.error }, { status: 500 });
+  }
+  void logAdminActivity('update', 'top_picks', null, `${body.category} x ${orderedIds.length}`);
   revalidatePath('/', 'layout');
   revalidatePath('/top', 'layout');
   revalidatePath(`/top/${body.category}`, 'layout');

@@ -5,16 +5,19 @@ import { formatDate } from '@/lib/utils';
 import { ChevronRight, Check, X, Star } from 'lucide-react';
 import type { Article } from '@/lib/sections';
 import type { ArticleItem } from '@/lib/article-items';
+import type { Product } from '@/lib/products';
 import ArticleActions from '@/components/article-actions';
+import { RelatedProducts } from '@/components/site/related-products';
 
 interface Props {
   article: Article;
   category: { slug: string; displayName: string };
   items: ArticleItem[];
   readAlsoArticles?: Article[];
+  relatedProducts?: Product[];
 }
 
-export function ListicleArticle({ article, category, items, readAlsoArticles = [] }: Props) {
+export function ListicleArticle({ article, category, items, readAlsoArticles = [], relatedProducts = [] }: Props) {
   const visibleItems = items.filter((i) => i.isVisible).sort((a, b) => a.displayOrder - b.displayOrder);
 
   // Build comparison table columns from all specs keys
@@ -302,6 +305,8 @@ export function ListicleArticle({ article, category, items, readAlsoArticles = [
           ))}
         </div>
       )}
+
+      <RelatedProducts products={relatedProducts} />
     </article>
   );
 }

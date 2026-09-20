@@ -22,15 +22,18 @@ export function TopPicksManager({
   initialCategory,
   initialAll,
   initialPicks,
+  initialAbout,
 }: {
   initialCategory: Cat;
   initialAll: any[];
   initialPicks: any[];
+  initialAbout?: string;
 }) {
   const router = useRouter();
   const [category, setCategory] = useState<Cat>(initialCategory);
   const [all, setAll] = useState<ProductLite[]>(initialAll.map(mapLite));
   const [picked, setPicked] = useState<ProductLite[]>(initialPicks.map(mapLite));
+  const [about, setAbout] = useState(initialAbout ?? '');
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
@@ -51,7 +54,7 @@ export function TopPicksManager({
       .then((data) => {
         if (data.ok && data.picks) {
           const rows = data.picks.map((x: any) => x.product ?? x).filter(Boolean);
-          // data.picks is like [{sort_order, product}] from GET? Actually our GET returns picks as mapped product rows.
+          // data.picks is like [{sort_order, product}] from GET? Actually our GET returns picks as enriched.
           // For top-picks GET, picks is [{product:row}]? We used supabaseAdmin directly in page, but client fetch returns picks as enriched.
           // Simplify: if picks contain product field, extract.
           const prods: ProductLite[] = rows.map((r: any) => (r.product ? mapLite(r.product) : mapLite(r)));
@@ -59,6 +62,7 @@ export function TopPicksManager({
           if (prods.length > 0) setPicked(prods);
           else if (Array.isArray(data.picks) && data.picks.length === 0) setPicked([]);
         }
+        if (data.ok && typeof data.about === 'string') setAbout(data.about);
       });
     // also use router refresh to sync URL?
   }, [category]);
@@ -71,7 +75,8 @@ export function TopPicksManager({
   const filteredAll = all.filter((p) => !pickedIds.has(p.id)).filter((p) => !query || p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 30);
 
   function addProduct(p: ProductLite) {
-    if (picked.length >= 10) { showFlash('error', 'Maximum 10 products. Remove one first.'); return; }
+    if (picked.length >= 50) { showFlash('error', 'Maximum 50 products. Remove one first.'); return; }
+    if (pickedIds.has(p.id)) return;
     setPicked((prev) => [...prev, p]);
   }
   function removeProduct(id: string) { setPicked((prev) => prev.filter((p) => p.id !== id)); }
@@ -87,16 +92,12 @@ export function TopPicksManager({
   }
 
   async function handlePublish() {
-    if (picked.length !== 5 && picked.length !== 10 && picked.length !== 0) {
-      showFlash('error', 'Please select exactly 5 or 10 products (or 0 to clear). Currently: ' + picked.length);
-      return;
-    }
     setSaving(true);
     try {
       const res = await fetch('/api/admin/top-picks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, orderedIds: picked.map((p) => p.id) }),
+        body: JSON.stringify({ category, orderedIds: picked.map((p) => p.id), about }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) { showFlash('error', data.error || 'Failed to publish'); return; }
@@ -112,29 +113,46 @@ export function TopPicksManager({
     <div className="flex flex-col gap-6">
       {flash && <p className={`rounded-xl border px-4 py-3 text-sm ${flash.kind === 'success' ? 'border-green-500/30 bg-green-500/5' : 'border-destructive/30 bg-destructive/5 text-destructive'}`}>{flash.text}</p>}
 
-      <div className="flex flex-wrap gap-2">
-        {(['mobile','laptop','gadget'] as Cat[]).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-medium ${category === cat ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
-          >
-            {cat === 'mobile' ? <Smartphone className="h-4 w-4" /> : cat === 'laptop' ? <Laptop className="h-4 w-4" /> : <Tablet className="h-4 w-4" />}
-            {cat === 'mobile' ? 'Mobile' : cat === 'laptop' ? 'Laptop' : 'Gadget'}
-          </button>
-        ))}
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Selected: <strong className={picked.length === 5 || picked.length === 10 ? 'text-green-600' : 'text-amber-600'}>{picked.length}</strong> / 5 or 10</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {(['mobile','laptop','gadget'] as Cat[]).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-medium ${category === cat ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
+            >
+              {cat === 'mobile' ? <Smartphone className="h-4 w-4" /> : cat === 'laptop' ? <Laptop className="h-4 w-4" /> : <Tablet className="h-4 w-4" />}
+              {cat === 'mobile' ? 'Mobile' : cat === 'laptop' ? 'Laptop' : 'Gadget'}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Selected: <strong className={picked.length > 0 ? 'text-green-600' : 'text-muted-foreground'}>{picked.length}</strong> {picked.length === 1 ? 'product' : 'products'} (1–50, 0 clears)</span>
           <a href={`/top/${pluralPath}`} target="_blank" className="rounded-lg border border-border px-3 py-2 hover:bg-muted">View Top Page</a>
           <a href={`/specs/${pluralPath}`} target="_blank" className="rounded-lg border border-border px-3 py-2 hover:bg-muted">View Specs</a>
         </div>
       </div>
 
+      {/* 1 — About this Top list */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">About Top {label}</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Shown at the top of the /top/{pluralPath} page. Saved together with the picks when you publish.</p>
+        <textarea
+          value={about}
+          onChange={(e) => setAbout(e.target.value)}
+          rows={3}
+          maxLength={500}
+          placeholder={`e.g. The best ${label.toLowerCase()} you can buy right now — tested for performance, battery, camera and value.`}
+          className="mt-3 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+        />
+        <p className="mt-1 text-right text-[11px] text-muted-foreground">{about.length}/500</p>
+      </section>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Picked / Ordered */}
+        {/* 2 — Picked: item cards in order */}
         <section className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="text-sm font-semibold flex items-center gap-2">Top {label} &mdash; Ordered ({picked.length})</h2>
-          <p className="text-xs text-muted-foreground mt-1">Drag with arrows. Publish to make live on /top/{pluralPath}.</p>
+          <h2 className="text-sm font-semibold flex items-center gap-2">Selected Top {label} — Cards ({picked.length})</h2>
+          <p className="text-xs text-muted-foreground mt-1">Reorder with arrows. Publish to make live on /top/{pluralPath}.</p>
           {picked.length === 0 ? (
             <p className="mt-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No products selected. Add from the right.</p>
           ) : (
@@ -158,14 +176,39 @@ export function TopPicksManager({
               ))}
             </ul>
           )}
-          <button onClick={handlePublish} disabled={saving || (picked.length !== 0 && picked.length !== 5 && picked.length !== 10)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 hover:shadow-glow">
+          <button onClick={handlePublish} disabled={saving} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 hover:shadow-glow">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Publish Top {label}
           </button>
-          <p className="mt-1 text-xs text-muted-foreground text-center">Must be exactly 5 or 10 to publish. 0 clears the Top page.</p>
+          <p className="mt-1 text-xs text-muted-foreground text-center">Any number from 1 to 50. Publish with 0 to clear the Top page. About text saves together.</p>
         </section>
 
-        {/* All products */}
+        {/* 3 — All selected tops as simple numbered links */}
         <section className="rounded-2xl border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold">Selected Tops — Numbered Links ({picked.length})</h2>
+          <p className="text-xs text-muted-foreground mt-1">Quick overview in publish order. Reorder or remove from here too.</p>
+          {picked.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nothing selected yet.</p>
+          ) : (
+            <ol className="mt-3 flex flex-col gap-1.5">
+              {picked.map((p, idx) => (
+                <li key={p.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-1.5">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{idx + 1}</span>
+                  <a href={`/specs/${pluralPath}/${p.slug}`} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-sm hover:text-primary hover:underline" title={p.name}>
+                    {p.name}
+                  </a>
+                  <div className="flex flex-shrink-0 items-center">
+                    <button onClick={() => move(idx, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-muted disabled:opacity-30" aria-label={`Move ${p.name} up`}><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => move(idx, 1)} disabled={idx === picked.length - 1} className="rounded p-1 hover:bg-muted disabled:opacity-30" aria-label={`Move ${p.name} down`}><ArrowDown className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => removeProduct(p.id)} className="rounded p-1 text-destructive hover:bg-destructive/10" aria-label={`Remove ${p.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
+        {/* Available products */}
+        <section className="rounded-2xl border border-border bg-card p-4 lg:col-span-2">
           <h2 className="text-sm font-semibold">Available {label}</h2>
           <div className="relative mt-3">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -184,7 +227,7 @@ export function TopPicksManager({
                     <p className="truncate text-sm font-medium">{p.name}</p>
                     <p className="truncate text-xs text-muted-foreground">{p.price_text ?? '—'}</p>
                   </div>
-                  <button onClick={() => addProduct(p)} disabled={picked.length >= 10} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40 hover:opacity-90 flex items-center gap-1"><Plus className="h-3 w-3" /> Add</button>
+                  <button onClick={() => addProduct(p)} disabled={picked.length >= 50} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40 hover:opacity-90 flex items-center gap-1"><Plus className="h-3 w-3" /> Add</button>
                 </div>
               ))
             )}
