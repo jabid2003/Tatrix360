@@ -20,6 +20,7 @@ import {
   Star,
 } from 'lucide-react';
 import type { ArticleItem } from '@/lib/article-items';
+import { ProductLinkPicker, type LinkedProduct } from '@/components/site/admin/product-link-picker';
 
 function slugifyClient(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
@@ -83,7 +84,9 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [expandedForm, setExpandedForm] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [linkedProduct, setLinkedProduct] = useState<LinkedProduct | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string | boolean>>({ ...EMPTY_FORM });
+  const [editProduct, setEditProduct] = useState<LinkedProduct | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
@@ -101,6 +104,20 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
     if (!res.ok || !data.ok) throw new Error(data.error || 'Upload failed');
     if (target === 'create') setForm((prev) => ({ ...prev, imageUrl: data.url }));
     else setEditForm((prev) => ({ ...prev, imageUrl: data.url }));
+  }
+
+  function pickProductForCreate(p: LinkedProduct | null) {
+    setLinkedProduct(p);
+    if (!p) return;
+    // Prefill only empty fields — typed content always wins.
+    setForm((prev) => ({
+      ...prev,
+      title: prev.title.trim() ? prev.title : p.name,
+      slug: prev.slug.trim() ? prev.slug : slugifyClient(p.name),
+      brand: prev.brand.trim() ? prev.brand : (p.brand ?? ''),
+      priceText: prev.priceText.trim() ? prev.priceText : (p.price_text ?? ''),
+      imageUrl: prev.imageUrl.trim() ? prev.imageUrl : (p.thumbnail_url || p.images?.[0] || ''),
+    }));
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -127,6 +144,7 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
         specifications: linesToSpecs(form.specsText),
         displayOrder,
         isVisible: form.isVisible,
+        productId: linkedProduct?.id || undefined,
       };
       const res = await fetch(`/api/admin/articles/${articleId}/items`, {
         method: 'POST',
@@ -137,6 +155,7 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
       if (!res.ok || !data.ok) { showFlash('error', data.error || 'Create failed'); return; }
       showFlash('success', 'Item added.');
       setForm({ ...EMPTY_FORM });
+      setLinkedProduct(null);
       setItems((prev) => [...prev, data.item]);
       router.refresh();
     } catch { showFlash('error', 'Something went wrong'); }
@@ -146,6 +165,7 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
   function startEdit(item: ArticleItem) {
     setEditingId(item.id);
     setExpandedForm(item.id);
+    setEditProduct(item.productId ? { id: item.productId, name: item.title, slug: '', category: '' } : null);
     setEditForm({
       title: item.title,
       slug: item.slug || '',
@@ -186,6 +206,7 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
         cons: linesToList(String(editForm.consText)),
         specifications: linesToSpecs(String(editForm.specsText)),
         isVisible: editForm.isVisible,
+        productId: editProduct ? editProduct.id : null,
       };
       const res = await fetch(`/api/admin/articles/${articleId}/items/${id}`, {
         method: 'PATCH',
@@ -291,6 +312,9 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
       {/* Create form */}
       <form onSubmit={handleCreate} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><Plus className="h-4 w-4 text-primary" /> Add product / list item</h2>
+        <div className="mt-3">
+          <ProductLinkPicker value={linkedProduct} onSelect={pickProductForCreate} />
+        </div>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <label className="flex flex-col gap-1 text-xs sm:col-span-2 lg:col-span-1"><span className="font-medium">Title *</span>
             <input value={form.title} onChange={(e) => { setForm({ ...form, title: e.target.value }); if (!form.slug) setForm((p) => ({ ...p, slug: slugifyClient(e.target.value) })); }} placeholder="Samsung Galaxy S25" className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary" /></label>
@@ -361,6 +385,11 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
                       <span className="block truncate text-xs text-muted-foreground">{item.brand} {item.priceText && <>· {item.priceText}</>} {item.rating !== null && item.rating !== undefined && <span className="inline-flex items-center gap-0.5 text-primary"><Star className="h-3 w-3 fill-current" />{item.rating.toFixed(1)}</span>}</span>
                     </span>
                   </button>
+                  {item.productId && (
+                    <span className="flex-shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary" title="Linked to a spec product — live data + View Full Specs on the article page">
+                      Linked
+                    </span>
+                  )}
                   {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                   <div className="flex gap-1.5">
                     <button onClick={() => toggleVisible(item)} disabled={busy === `toggle:${item.id}`} className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-50" aria-label="Toggle visibility">{item.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
@@ -374,6 +403,10 @@ export function ArticleItemsManager({ articleId, articleTitle, initialItems }: P
                   <div className="border-t border-border p-3 sm:p-4">
                     {isEditing ? (
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="sm:col-span-2 lg:col-span-3">
+                          <p className="mb-1.5 text-xs font-medium">Linked spec product</p>
+                          <ProductLinkPicker value={editProduct} onSelect={setEditProduct} />
+                        </div>
                         <label className="flex flex-col gap-1 text-xs lg:col-span-1"><span className="font-medium">Title</span><input value={String(editForm.title)} onChange={(e) => setEditField('title', e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" /></label>
                         <label className="flex flex-col gap-1 text-xs"><span className="font-medium">Slug</span><input value={String(editForm.slug)} onChange={(e) => setEditField('slug', slugifyClient(e.target.value))} className="rounded-xl border border-input bg-background px-3 py-2 font-mono text-sm outline-none focus:border-primary" /></label>
                         <label className="flex flex-col gap-1 text-xs"><span className="font-medium">Brand</span><input value={String(editForm.brand)} onChange={(e) => setEditField('brand', e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" /></label>

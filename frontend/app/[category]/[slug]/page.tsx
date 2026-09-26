@@ -23,7 +23,7 @@ import { AdBanner } from '@/components/site/ad-banner';
 import { ArticleSidebar } from '@/components/site/article-sidebar';
 import { ListicleArticle } from '@/components/site/listicle-article';
 import { getArticleItems } from '@/lib/article-items';
-import { getProductsByIds } from '@/lib/products';
+import { getProductsByIds, type Product } from '@/lib/products';
 import { RelatedProducts } from '@/components/site/related-products';
 
 import { ArrowLeft, ChevronRight } from 'lucide-react';
@@ -237,6 +237,27 @@ export default async function ArticlePage({
       // If it's a listicle, delegate to the dedicated listicle component
       if (article.articleType === 'listicle') {
         const items = await getArticleItems(article.id, false).catch(() => []);
+        // Resolve linked spec products (same product reusable across articles).
+        // Live product data fills gaps; typed fields always win.
+        const linkedIds = items.map((i) => i.productId).filter((x): x is string => !!x);
+        const linkedList = linkedIds.length > 0 ? await getProductsByIds(linkedIds).catch(() => []) : [];
+        const linkedMap: Record<string, Product> = Object.fromEntries(linkedList.map((p) => [p.id, p]));
+        const displayItems = items.map((item) => {
+          const prod = item.productId ? linkedMap[item.productId] : undefined;
+          if (!prod) return item;
+          const hasSpecs = item.specifications && Object.keys(item.specifications).length > 0;
+          return {
+            ...item,
+            brand: item.brand || prod.brand,
+            priceText: item.priceText || prod.priceText,
+            imageUrl: item.imageUrl || prod.thumbnailUrl || prod.images[0],
+            specifications: hasSpecs
+              ? item.specifications
+              : Object.fromEntries(
+                  prod.keySpecs.slice(0, 8).map((k) => [k.label, k.value]).filter(([k, v]) => k && v)
+                ),
+          };
+        });
         const [readAlsoArticles, relatedProducts] = await Promise.all([
           article.readAlsoIds && article.readAlsoIds.length > 0
             ? getArticlesByIds(article.readAlsoIds).catch(() => [])
@@ -254,9 +275,10 @@ export default async function ArticlePage({
             <ListicleArticle
               article={article}
               category={{ slug: mainCat.slug, displayName: mainCat.displayName }}
-              items={items}
+              items={displayItems}
               readAlsoArticles={readAlsoArticles}
               relatedProducts={relatedProducts}
+              linkedProducts={linkedMap}
             />
           </>
         );
