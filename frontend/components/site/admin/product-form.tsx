@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { Product, ProductCategory, SpecSection, KeySpec } from '@/lib/products';
 import { ReadAlsoSection } from './read-also-section';
+import { isImageDataUrl, dataUrlToFile, getDroppedImage } from '@/lib/image-utils';
 
 const DEFAULT_SPECS: Record<ProductCategory, SpecSection[]> = {
   mobile: [
@@ -152,12 +153,54 @@ export function ProductForm({
     if (url) { setThumbnailUrl(url); if (!images.includes(url)) setImages((p) => [url, ...p]); }
   }
 
-  function addImageUrl() {
-    const v = imageUrlInput.trim();
+  function addImageUrl(valueOverride?: string) {
+    const v = (valueOverride ?? imageUrlInput).trim();
     if (!v) return;
+    // AI-generated images pasted as base64 data URLs are uploaded as files
+    // (storing raw data URLs would bloat the database).
+    if (isImageDataUrl(v)) {
+      const file = dataUrlToFile(v, slugifyClient(slug || name) || 'product');
+      if (!file) { setError('That pasted data is not a valid image.'); return; }
+      uploadFile(file).then((url) => {
+        if (url) {
+          setImages((p) => [...p, url]);
+          setThumbnailUrl((prev) => prev || url);
+        }
+      });
+      setImageUrlInput('');
+      return;
+    }
     setImages((p) => [...p, v]);
     if (!thumbnailUrl) setThumbnailUrl(v);
     setImageUrlInput('');
+  }
+
+  const [dragOver, setDragOver] = useState(false);
+
+  async function uploadDroppedFiles(files: File[]) {
+    for (const file of files) {
+      const url = await uploadFile(file);
+      if (url) {
+        setImages((prev) => [...prev, url]);
+        setThumbnailUrl((prev) => prev || url);
+      }
+    }
+  }
+
+  // Drop files OR image URLs / data URLs dragged straight from a web page.
+  async function handleImagesDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const dt = e.dataTransfer;
+    const files = Array.from(dt?.files ?? []).filter((f) => f.type.startsWith('image/'));
+    if (files.length > 0) {
+      await uploadDroppedFiles(files);
+      return;
+    }
+    const dropped = getDroppedImage(dt);
+    if (!dropped) return;
+    if (dropped.file) await uploadDroppedFiles([dropped.file]);
+    else if (dropped.url) addImageUrl(dropped.url);
   }
 
   // Spec sections
@@ -321,7 +364,12 @@ export function ProductForm({
               </div>
             ))}
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div
+            className={`mt-3 flex flex-wrap gap-2 rounded-xl p-1 -m-1 transition-colors ${dragOver ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleImagesDrop}
+          >
             <button type="button" onClick={() => galleryInputRef.current?.click()} disabled={uploading} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted disabled:opacity-50">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload Images
             </button>
@@ -330,12 +378,12 @@ export function ProductForm({
               <ImageIcon className="h-4 w-4" /> Thumbnail
             </label>
             <div className="flex gap-2">
-              <input value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} placeholder="Paste image URL" className="rounded-lg border border-input bg-background px-3 py-2 text-sm w-48 outline-none focus:border-primary" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addImageUrl())} />
-              <button type="button" onClick={addImageUrl} className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"><Link2 className="h-4 w-4" /></button>
+              <input value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} placeholder="Paste image URL or AI data URL" className="rounded-lg border border-input bg-background px-3 py-2 text-sm w-48 outline-none focus:border-primary" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addImageUrl())} />
+              <button type="button" onClick={() => addImageUrl()} className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"><Link2 className="h-4 w-4" /></button>
             </div>
           </div>
           <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGallerySelect} className="hidden" />
-          <p className="mt-1 text-xs text-muted-foreground">First image becomes thumbnail if none selected. Hover to set / delete. Upload multiple.</p>
+          <p className="mt-1 text-xs text-muted-foreground">First image becomes thumbnail if none selected. Hover to set / delete. Upload multiple, or drag files / images straight from a web page.</p>
         </div>
       </section>
 
