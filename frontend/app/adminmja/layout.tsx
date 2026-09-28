@@ -43,7 +43,7 @@ export default async function AdminLayout({
               { href: '/adminmja/top-articles', label: 'Top & Latest' },
               { href: '/adminmja/homepage-featured', label: 'Homepage' },
               { href: '/adminmja/specs', label: 'Specs' },
-              { href: '/adminmja/top-picks', label: 'Select Top’s' },
+              { href: '/adminmja/top-picks', label: 'Select Best Products' },
               { href: '/adminmja/authors', label: 'Authors' },
               { href: '/adminmja/categories', label: 'Categories' },
               { href: '/adminmja/settings', label: 'Settings' },

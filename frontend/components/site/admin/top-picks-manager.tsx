@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { GripVertical, Plus, Trash2, Loader2, ArrowUp, ArrowDown, Save, Smartphone, Laptop, Tablet, Search } from 'lucide-react';
+import { GripVertical, Plus, Trash2, Loader2, ArrowUp, ArrowDown, Save, Smartphone, Laptop, Tablet, Search, Package } from 'lucide-react';
+import type { MainCategory, CategorySection } from '@/lib/sections';
 
 type Cat = 'mobile' | 'laptop' | 'gadget';
 
@@ -18,23 +18,37 @@ interface ProductLite {
   images?: string[] | null;
 }
 
+const CAT_LABEL: Record<Cat, string> = { mobile: 'Mobile', laptop: 'Laptop', gadget: 'Gadget' };
+const CAT_META: Record<Cat, string> = {
+  mobile: 'Best Phones Under ₹20000',
+  laptop: 'Best Laptops for Students',
+  gadget: 'Top 5 Camera Phones',
+};
+
 export function TopPicksManager({
   initialCategory,
   initialAll,
-  initialPicks,
-  initialAbout,
+  mainCategories,
 }: {
   initialCategory: Cat;
   initialAll: any[];
-  initialPicks: any[];
-  initialAbout?: string;
+  mainCategories: MainCategory[];
 }) {
-  const router = useRouter();
   const [category, setCategory] = useState<Cat>(initialCategory);
   const [all, setAll] = useState<ProductLite[]>(initialAll.map(mapLite));
-  const [picked, setPicked] = useState<ProductLite[]>(initialPicks.map(mapLite));
-  const [about, setAbout] = useState(initialAbout ?? '');
+  // Picks persist across category tabs — the same product can go into many
+  // lists (e.g. "Best Phone Under 20k" AND "Best Camera Phone").
+  const [picked, setPicked] = useState<ProductLite[]>([]);
   const [query, setQuery] = useState('');
+
+  // New list details — title + description first, then products, then publish.
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [mainCategoryId, setMainCategoryId] = useState(mainCategories[0]?.id ?? '');
+  const [sections, setSections] = useState<CategorySection[]>([]);
+  const [sectionId, setSectionId] = useState('');
+  const [sectionsLoading, setSectionsLoading] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
 
@@ -43,36 +57,38 @@ export function TopPicksManager({
   }
 
   useEffect(() => {
-    // fetch when category changes
     fetch(`/api/admin/products?category=${category}&limit=100`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.ok) setAll(data.products.map(mapLite));
-      });
-    fetch(`/api/admin/top-picks?category=${category}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.ok && data.picks) {
-          const rows = data.picks.map((x: any) => x.product ?? x).filter(Boolean);
-          // data.picks is like [{sort_order, product}] from GET? Actually our GET returns picks as enriched.
-          // For top-picks GET, picks is [{product:row}]? We used supabaseAdmin directly in page, but client fetch returns picks as enriched.
-          // Simplify: if picks contain product field, extract.
-          const prods: ProductLite[] = rows.map((r: any) => (r.product ? mapLite(r.product) : mapLite(r)));
-          // fallback: fetch via picks array shape from page? We'll just keep initialPicks if fetch mismatch.
-          if (prods.length > 0) setPicked(prods);
-          else if (Array.isArray(data.picks) && data.picks.length === 0) setPicked([]);
-        }
-        if (data.ok && typeof data.about === 'string') setAbout(data.about);
-      });
-    // also use router refresh to sync URL?
+        if (data.ok) setAll((data.products ?? []).map(mapLite));
+      })
+      .catch(() => {});
   }, [category]);
 
+  // Cascading sections for the target article location.
+  useEffect(() => {
+    if (!mainCategoryId) { setSections([]); setSectionId(''); return; }
+    let cancelled = false;
+    setSectionsLoading(true);
+    fetch(`/api/admin/sections?mainCategoryId=${encodeURIComponent(mainCategoryId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const list: CategorySection[] = Array.isArray(data.sections) ? data.sections : [];
+        setSections(list);
+        setSectionId((prev) => (list.some((s) => s.id === prev) ? prev : ''));
+      })
+      .catch(() => { if (!cancelled) setSections([]); })
+      .finally(() => { if (!cancelled) setSectionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [mainCategoryId]);
+
   function showFlash(kind: 'success' | 'error', text: string) {
-    setFlash({ kind, text }); setTimeout(() => setFlash(null), 4000);
+    setFlash({ kind, text }); setTimeout(() => setFlash(null), 5000);
   }
 
   const pickedIds = new Set(picked.map((p) => p.id));
-  const filteredAll = all.filter((p) => !pickedIds.has(p.id)).filter((p) => !query || p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 30);
+  const filteredAll = all.filter((p) => !pickedIds.has(p.id)).filter((p) => !query || p.name.toLowerCase().includes(query.toLowerCase()) || (p.brand ?? '').toLowerCase().includes(query.toLowerCase())).slice(0, 30);
 
   function addProduct(p: ProductLite) {
     if (picked.length >= 50) { showFlash('error', 'Maximum 50 products. Remove one first.'); return; }
@@ -92,148 +108,181 @@ export function TopPicksManager({
   }
 
   async function handlePublish() {
+    if (!title.trim()) { showFlash('error', 'Give the list a title first.'); return; }
+    if (picked.length === 0) { showFlash('error', 'Add at least 1 product.'); return; }
+    if (!mainCategoryId) { showFlash('error', 'Choose where the article will live (category).'); return; }
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/top-picks', {
-        method: 'PUT',
+      const res = await fetch('/api/admin/best-products', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, orderedIds: picked.map((p) => p.id), about }),
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          mainCategoryId,
+          sectionId: sectionId || undefined,
+          orderedIds: picked.map((p) => p.id),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) { showFlash('error', data.error || 'Failed to publish'); return; }
-      showFlash('success', `Published Top ${picked.length || 'cleared'} for ${category}`);
-      router.refresh();
+      showFlash('success', 'Article published! Opening its items…');
+      window.location.href = `/adminmja/posts/${data.articleId}/items`;
     } catch { showFlash('error', 'Failed'); } finally { setSaving(false); }
   }
 
-  const label = category === 'mobile' ? 'Mobiles' : category === 'laptop' ? 'Laptops' : 'Gadgets';
-  const pluralPath = category === 'mobile' ? 'mobiles' : category === 'laptop' ? 'laptops' : 'gadgets';
+  const label = CAT_LABEL[category];
 
   return (
     <div className="flex flex-col gap-6">
       {flash && <p className={`rounded-xl border px-4 py-3 text-sm ${flash.kind === 'success' ? 'border-green-500/30 bg-green-500/5' : 'border-destructive/30 bg-destructive/5 text-destructive'}`}>{flash.text}</p>}
 
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {(['mobile','laptop','gadget'] as Cat[]).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-medium ${category === cat ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
-            >
-              {cat === 'mobile' ? <Smartphone className="h-4 w-4" /> : cat === 'laptop' ? <Laptop className="h-4 w-4" /> : <Tablet className="h-4 w-4" />}
-              {cat === 'mobile' ? 'Mobile' : cat === 'laptop' ? 'Laptop' : 'Gadget'}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Selected: <strong className={picked.length > 0 ? 'text-green-600' : 'text-muted-foreground'}>{picked.length}</strong> {picked.length === 1 ? 'product' : 'products'} (1–50, 0 clears)</span>
-          <a href={`/top/${pluralPath}`} target="_blank" className="rounded-lg border border-border px-3 py-2 hover:bg-muted">View Top Page</a>
-          <a href={`/specs/${pluralPath}`} target="_blank" className="rounded-lg border border-border px-3 py-2 hover:bg-muted">View Specs</a>
-        </div>
+      {/* Category tabs — the catalog shown below; picks carry across tabs */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {(['mobile', 'laptop', 'gadget'] as Cat[]).map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setCategory(cat)}
+            className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-medium ${category === cat ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
+          >
+            {cat === 'mobile' ? <Smartphone className="h-4 w-4" /> : cat === 'laptop' ? <Laptop className="h-4 w-4" /> : <Tablet className="h-4 w-4" />}
+            {CAT_LABEL[cat]}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setTitle((t) => t || CAT_META[category])}
+          title="Fill title example"
+          className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Package className="h-4 w-4" /> Example title
+        </button>
       </div>
 
-      {/* 1 — About this Top list */}
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">About Top {label}</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Shown at the top of the /top/{pluralPath} page. Saved together with the picks when you publish.</p>
-        <textarea
-          value={about}
-          onChange={(e) => setAbout(e.target.value)}
-          rows={3}
-          maxLength={500}
-          placeholder={`e.g. The best ${label.toLowerCase()} you can buy right now — tested for performance, battery, camera and value.`}
-          className="mt-3 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
-        />
-        <p className="mt-1 text-right text-[11px] text-muted-foreground">{about.length}/500</p>
+      {/* 1 — Title + description */}
+      <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <h2 className="text-sm font-semibold">1 · Name the list</h2>
+        <p className="mt-1 text-xs text-muted-foreground">E.g. &ldquo;Best Phone Under 20k&rdquo; — this becomes a separate article page. The same products can be reused in another list later.</p>
+        <label className="mt-3 flex flex-col gap-1 text-xs">
+          <span className="font-medium">Title *</span>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Best Phone Under 20k"
+            className="rounded-xl border border-input bg-background px-4 py-3 text-base outline-none transition-colors focus:border-primary"
+          />
+        </label>
+        <label className="mt-3 flex flex-col gap-1 text-xs">
+          <span className="font-medium">Description</span>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            maxLength={2000}
+            placeholder="Short intro shown at the top of the article — what this list covers and who it is for…"
+            className="rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+          />
+        </label>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="font-medium">Publish under category *</span>
+            <select
+              value={mainCategoryId}
+              onChange={(e) => setMainCategoryId(e.target.value)}
+              className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+            >
+              {mainCategories.map((c) => (
+                <option key={c.id} value={c.id}>{c.displayName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="font-medium">Section (optional)</span>
+            <select
+              value={sectionId}
+              onChange={(e) => setSectionId(e.target.value)}
+              disabled={sectionsLoading}
+              className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-50"
+            >
+              <option value="">— No section —</option>
+              {sections.map((s) => (
+                <option key={s.id} value={s.id}>{s.title}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* 2 — Picked: item cards in order */}
+        {/* 2 — Selected products: cards in publish order */}
         <section className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="text-sm font-semibold flex items-center gap-2">Selected Top {label} — Cards ({picked.length})</h2>
-          <p className="text-xs text-muted-foreground mt-1">Reorder with arrows. Publish to make live on /top/{pluralPath}.</p>
+          <h2 className="text-sm font-semibold">2 · Selected products — Cards ({picked.length})</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Reorder with arrows. Products stay available for future lists.</p>
           {picked.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No products selected. Add from the right.</p>
+            <p className="mt-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No products yet. Add from the catalog on the right.</p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
               {picked.map((p, idx) => (
-                <li key={p.id} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 bg-muted/20">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">{idx + 1}</span>
-                  <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-border bg-muted flex-shrink-0">
+                <li key={p.id} className="flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2">
+                  <GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground/40" />
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">{idx + 1}</span>
+                  <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                     {p.thumbnail_url ? <Image src={p.thumbnail_url} alt={p.name} width={40} height={40} className="h-full w-auto object-contain p-0.5" /> : p.images?.[0] ? <Image src={p.images[0]} alt={p.name} width={40} height={40} className="h-full w-auto object-contain p-0.5" /> : <div className="h-full w-full bg-muted" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{p.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{p.brand ?? ''} · {p.price_text ?? '—'}</p>
+                    <p className="truncate text-xs text-muted-foreground">{CAT_LABEL[p.category as Cat] ?? p.category}{p.brand ? ` · ${p.brand}` : ''}{p.price_text ? ` · ${p.price_text}` : ''}</p>
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <button onClick={() => move(idx, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-muted disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => move(idx, 1)} disabled={idx === picked.length - 1} className="rounded p-1 hover:bg-muted disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
+                  <div className="flex flex-shrink-0 flex-col gap-0.5">
+                    <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-muted disabled:opacity-30" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => move(idx, 1)} disabled={idx === picked.length - 1} className="rounded p-1 hover:bg-muted disabled:opacity-30" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
                   </div>
-                  <button onClick={() => removeProduct(p.id)} className="rounded-lg p-2 text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => removeProduct(p.id)} className="flex-shrink-0 rounded-lg p-2 text-destructive hover:bg-destructive/10" aria-label={`Remove ${p.name}`}><Trash2 className="h-4 w-4" /></button>
                 </li>
               ))}
             </ul>
           )}
-          <button onClick={handlePublish} disabled={saving} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 hover:shadow-glow">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Publish Top {label}
-          </button>
-          <p className="mt-1 text-xs text-muted-foreground text-center">Any number from 1 to 50. Publish with 0 to clear the Top page. About text saves together.</p>
         </section>
 
-        {/* 3 — All selected tops as simple numbered links */}
+        {/* 3 — Catalog: add from any category */}
         <section className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="text-sm font-semibold">Selected Tops — Numbered Links ({picked.length})</h2>
-          <p className="text-xs text-muted-foreground mt-1">Quick overview in publish order. Reorder or remove from here too.</p>
-          {picked.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nothing selected yet.</p>
-          ) : (
-            <ol className="mt-3 flex flex-col gap-1.5">
-              {picked.map((p, idx) => (
-                <li key={p.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-1.5">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{idx + 1}</span>
-                  <a href={`/specs/${pluralPath}/${p.slug}`} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-sm hover:text-primary hover:underline" title={p.name}>
-                    {p.name}
-                  </a>
-                  <div className="flex flex-shrink-0 items-center">
-                    <button onClick={() => move(idx, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-muted disabled:opacity-30" aria-label={`Move ${p.name} up`}><ArrowUp className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => move(idx, 1)} disabled={idx === picked.length - 1} className="rounded p-1 hover:bg-muted disabled:opacity-30" aria-label={`Move ${p.name} down`}><ArrowDown className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => removeProduct(p.id)} className="rounded p-1 text-destructive hover:bg-destructive/10" aria-label={`Remove ${p.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-
-        {/* Available products */}
-        <section className="rounded-2xl border border-border bg-card p-4 lg:col-span-2">
-          <h2 className="text-sm font-semibold">Available {label}</h2>
+          <h2 className="text-sm font-semibold">3 · Add {label} products</h2>
           <div className="relative mt-3">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products..." className="w-full rounded-xl border border-input bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${label.toLowerCase()} products…`} className="w-full rounded-xl border border-input bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
           <div className="mt-3 max-h-[520px] overflow-y-auto flex flex-col gap-2 pr-1">
             {filteredAll.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No matching products.</p>
+              <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No matching products. Try another tab or search.</p>
             ) : (
               filteredAll.map((p) => (
                 <div key={p.id} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
-                  <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-border bg-muted flex-shrink-0">
+                  <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                     {p.thumbnail_url ? <Image src={p.thumbnail_url} alt={p.name} width={40} height={40} className="h-full w-auto object-contain p-0.5" /> : p.images?.[0] ? <Image src={p.images[0]} alt={p.name} width={40} height={40} className="h-full w-auto object-contain p-0.5" /> : <div className="h-full w-full bg-muted" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{p.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{p.price_text ?? '—'}</p>
+                    <p className="truncate text-xs text-muted-foreground">{p.brand ?? ''}{p.price_text ? ` · ${p.price_text}` : ''}</p>
                   </div>
-                  <button onClick={() => addProduct(p)} disabled={picked.length >= 50} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40 hover:opacity-90 flex items-center gap-1"><Plus className="h-3 w-3" /> Add</button>
+                  <button type="button" onClick={() => addProduct(p)} disabled={picked.length >= 50} className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40 hover:opacity-90"><Plus className="h-3 w-3" /> Add</button>
                 </div>
               ))
             )}
           </div>
         </section>
       </div>
+
+      {/* 4 — Publish */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <button onClick={handlePublish} disabled={saving} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 hover:shadow-glow">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? 'Publishing…' : `Publish “${title.trim() || 'Best Products'}” as article`}
+        </button>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Creates a listicle article ({picked.length} linked {picked.length === 1 ? 'product' : 'products'}) and opens its items for final tweaks. Products stay reusable in other lists.
+        </p>
+      </section>
     </div>
   );
 }

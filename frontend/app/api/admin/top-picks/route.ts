@@ -4,6 +4,8 @@ import { getAdminProducts, getTopPicks, setTopPicks, getTopListMeta, setTopListM
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logAdminActivity } from '@/lib/admin-log';
 
+export const dynamic = 'force-dynamic';
+
 function isValidCategory(v: unknown): v is ProductCategory {
   return v === 'mobile' || v === 'laptop' || v === 'gadget';
 }
@@ -16,26 +18,31 @@ const CATEGORY_TO_SPECS_SLUG: Record<ProductCategory, string> = {
 
 // GET ?category=mobile -> { top: {product, sort_order}[], all: Product[] }
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category');
-  if (!category || !isValidCategory(category)) {
-    return NextResponse.json({ ok: false, error: 'category must be mobile, laptop, or gadget' }, { status: 400 });
+  try {
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    if (!category || !isValidCategory(category)) {
+      return NextResponse.json({ ok: false, error: 'category must be mobile, laptop, or gadget' }, { status: 400 });
+    }
+    const [picks, all, about] = await Promise.all([
+      (async () => {
+        const ids = await getTopPicks(category);
+        if (ids.length === 0) return [];
+        const { data } = await supabaseAdmin.from('products').select('*').in('id', ids.map((x) => x.productId));
+        const map = new Map((data ?? []).map((r: any) => [r.id, r]));
+        return ids.map((p) => {
+          const row = map.get(p.productId);
+          return row ? { sort_order: p.sortOrder, product: row } : null;
+        }).filter(Boolean);
+      })(),
+      getAdminProducts({ category, limit: 100 }),
+      getTopListMeta(category),
+    ]);
+    return NextResponse.json({ ok: true, category, picks, products: all, about: about ?? '' });
+  } catch (err) {
+    console.error('[admin top-picks GET]', err);
+    return NextResponse.json({ ok: false, error: 'Failed to load.' }, { status: 500 });
   }
-  const [picks, all, about] = await Promise.all([
-    (async () => {
-      const ids = await getTopPicks(category);
-      if (ids.length === 0) return [];
-      const { data } = await supabaseAdmin.from('products').select('*').in('id', ids.map((x) => x.productId));
-      const map = new Map((data ?? []).map((r: any) => [r.id, r]));
-      return ids.map((p) => {
-        const row = map.get(p.productId);
-        return row ? { sort_order: p.sortOrder, product: row } : null;
-      }).filter(Boolean);
-    })(),
-    getAdminProducts({ category, limit: 100 }),
-    getTopListMeta(category),
-  ]);
-  return NextResponse.json({ ok: true, category, picks, products: all, about: about ?? '' });
 }
 
 // PUT { category, orderedIds: string[], about?: string } -> replace top picks (any count 0..50) + about text
@@ -50,14 +57,16 @@ export async function PUT(request: Request) {
   }
   const result = await setTopPicks(body.category, orderedIds);
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  // About text is auxiliary: a save failure warns instead of failing the publish.
+  let warning: string | undefined;
   if (typeof body.about === 'string') {
     const aboutRes = await setTopListMeta(body.category, body.about);
-    if (!aboutRes.ok) return NextResponse.json({ ok: false, error: aboutRes.error }, { status: 500 });
+    if (!aboutRes.ok) warning = `Picks published, but About text failed to save (${aboutRes.error}). Run the top_list_meta grants SQL in Supabase.`;
   }
   void logAdminActivity('update', 'top_picks', null, `${body.category} x ${orderedIds.length}`);
   revalidatePath('/', 'layout');
   revalidatePath('/top', 'layout');
   revalidatePath(`/top/${body.category}`, 'layout');
   revalidatePath(`/specs/${CATEGORY_TO_SPECS_SLUG[body.category as ProductCategory]}`, 'layout');
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, warning });
 }
