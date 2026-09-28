@@ -56,6 +56,7 @@ export interface Article {
   introContent?: string;
   conclusionContent?: string;
   readAlsoIds?: string[];
+  relatedProductIds?: string[];
   createdAt?: string;
   updatedAt?: string;
   mainCategory?: MainCategory;
@@ -131,6 +132,7 @@ interface ArticleRow {
   intro_content: string | null;
   conclusion_content: string | null;
   read_also_ids: string[] | null;
+  related_product_ids: string[] | null;
   created_at: string | null;
   updated_at: string | null;
   main_categories?: MainCategoryRow | null;
@@ -189,6 +191,7 @@ function mapArticle(r: ArticleRow): Article {
     introContent: r.intro_content ?? undefined,
     conclusionContent: r.conclusion_content ?? undefined,
     readAlsoIds: r.read_also_ids && r.read_also_ids.length > 0 ? r.read_also_ids : undefined,
+    relatedProductIds: r.related_product_ids && r.related_product_ids.length > 0 ? r.related_product_ids : undefined,
     createdAt: r.created_at ?? undefined,
     updatedAt: r.updated_at ?? undefined,
     mainCategory: r.main_categories ? mapMainCategory(r.main_categories) : undefined,
@@ -538,6 +541,7 @@ export interface ArticleInput {
   introContent?: string;
   conclusionContent?: string;
   readAlsoIds?: string[];
+  relatedProductIds?: string[];
 }
 
 export async function createArticle(
@@ -567,6 +571,7 @@ export async function createArticle(
       intro_content: input.introContent || null,
       conclusion_content: input.conclusionContent || null,
       read_also_ids: input.readAlsoIds && input.readAlsoIds.length > 0 ? input.readAlsoIds : null,
+      related_product_ids: input.relatedProductIds && input.relatedProductIds.length > 0 ? input.relatedProductIds : null,
     })
     .select('id')
     .single();
@@ -609,6 +614,9 @@ export async function updateArticle(
     }
     if (input.readAlsoIds !== undefined) {
       updateData.read_also_ids = input.readAlsoIds.length > 0 ? input.readAlsoIds : null;
+    }
+    if (input.relatedProductIds !== undefined) {
+      updateData.related_product_ids = input.relatedProductIds.length > 0 ? input.relatedProductIds : null;
     }
   const { error } = await supabaseAdmin
     .from('articles')

@@ -14,6 +14,8 @@ export interface ArticleItem {
   brand?: string;
   priceText?: string;
   productUrl?: string;
+  /** Linked spec-catalog product (live data renders on the article page). */
+  productId?: string;
   badge?: string;
   releaseDate?: string;
   rating?: number;
@@ -58,6 +60,7 @@ interface ArticleItemRow {
   brand: string | null;
   price_text: string | null;
   product_url: string | null;
+  product_id: string | null;
   badge: string | null;
   release_date: string | null;
   rating: number | null;
@@ -81,6 +84,7 @@ function mapArticleItem(r: ArticleItemRow): ArticleItem {
     brand: r.brand ?? undefined,
     priceText: r.price_text ?? undefined,
     productUrl: r.product_url ?? undefined,
+    productId: r.product_id ?? undefined,
     badge: r.badge ?? undefined,
     releaseDate: r.release_date ?? undefined,
     rating: r.rating ?? undefined,
@@ -146,6 +150,8 @@ export interface ArticleItemInput {
   brand?: string;
   priceText?: string;
   productUrl?: string;
+  /** UUID of a linked spec product; null clears the link. */
+  productId?: string | null;
   badge?: string;
   releaseDate?: string;
   rating?: number;
@@ -169,6 +175,7 @@ function sanitizeItemInput(input: ArticleItemInput): { ok: boolean; data?: Requi
   if (input.imageUrl && input.imageUrl.trim() && !imageUrl) return { ok: false, error: 'Item image URL invalid.' };
   const productUrl = input.productUrl ? sanitizeUrl(input.productUrl) : undefined;
   if (input.productUrl && input.productUrl.trim() && !productUrl) return { ok: false, error: 'Product URL must be http(s).' };
+  const productId = typeof input.productId === 'string' && input.productId.trim() ? input.productId.trim() : undefined;
   const rating = input.rating !== undefined && input.rating !== null ? Number(input.rating) : undefined;
   if (rating !== undefined && (!Number.isFinite(rating) || rating < 0 || rating > 5)) return { ok: false, error: 'Rating must be 0-5.' };
   const pros = (input.pros ?? []).map(v => sanitizeText(v, 300)).filter(Boolean).slice(0, 20);
@@ -193,6 +200,7 @@ function sanitizeItemInput(input: ArticleItemInput): { ok: boolean; data?: Requi
       brand: input.brand ? sanitizeText(input.brand, 120) : undefined,
       priceText: input.priceText ? sanitizeText(input.priceText, 120) : undefined,
       productUrl,
+      productId,
       badge: input.badge ? sanitizeText(input.badge, 60) : undefined,
       releaseDate: input.releaseDate || undefined,
       rating,
@@ -218,6 +226,7 @@ export async function createArticleItem(articleId: string, input: ArticleItemInp
     brand: d.brand || null,
     price_text: d.priceText || null,
     product_url: d.productUrl || null,
+    product_id: d.productId || null,
     badge: d.badge || null,
     release_date: d.releaseDate || null,
     rating: d.rating ?? null,
@@ -260,6 +269,7 @@ export async function updateArticleItem(id: string, input: Partial<ArticleItemIn
       patch.product_url = u;
     }
   }
+  if (input.productId !== undefined) patch.product_id = input.productId ? input.productId : null;
   if (input.badge !== undefined) patch.badge = input.badge ? sanitizeText(input.badge, 60) : null;
   if (input.releaseDate !== undefined) patch.release_date = input.releaseDate || null;
   if (input.rating !== undefined) patch.rating = input.rating === null || input.rating === undefined ? null : Number(input.rating);

@@ -23,7 +23,9 @@ import type { MainCategory, CategorySection, Article } from '@/lib/sections';
 import { getActiveAuthors } from '@/lib/authors';
 import type { AuthorFull } from '@/lib/authors';
 import { ReadAlsoPicker } from '@/components/site/admin/read-also-picker';
+import { RelatedProductsPicker } from '@/components/site/admin/related-products-picker';
 import { Markdown } from '@/components/site/markdown';
+import { isImageDataUrl, dataUrlToFile, getDroppedImage } from '@/lib/image-utils';
 
 function slugifyClient(input: string): string {
   return input
@@ -76,6 +78,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
   const [introContent, setIntroContent] = useState(initialArticle?.introContent ?? '');
   const [conclusionContent, setConclusionContent] = useState(initialArticle?.conclusionContent ?? '');
   const [readAlsoIds, setReadAlsoIds] = useState<string[]>(initialArticle?.readAlsoIds ?? []);
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>(initialArticle?.relatedProductIds ?? []);
 
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -117,14 +120,14 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
           mainCategoryId, sectionId, authorId,
           seoTitle, seoDescription, status, publishedAt,
           isVisible, isLatest, isPinned, latestOrder, pinnedOrder,
-          articleType, introContent, conclusionContent, readAlsoIds,
+          articleType, introContent, conclusionContent, readAlsoIds, relatedProductIds,
           savedAt: Date.now(),
         }));
         setLastAutosaved(new Date().toLocaleTimeString());
       } catch {}
     }, 30000);
     return () => clearInterval(t);
-  }, [title, subtitle, slug, content, thumbnailUrl, mainCategoryId, sectionId, authorId, seoTitle, seoDescription, status, publishedAt, isVisible, isLatest, isPinned, latestOrder, pinnedOrder, articleType, introContent, conclusionContent, readAlsoIds, draftKey]);
+  }, [title, subtitle, slug, content, thumbnailUrl, mainCategoryId, sectionId, authorId, seoTitle, seoDescription, status, publishedAt, isVisible, isLatest, isPinned, latestOrder, pinnedOrder, articleType, introContent, conclusionContent, readAlsoIds, relatedProductIds, draftKey]);
 
   function restoreDraft() {
     try {
@@ -153,6 +156,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
       setIntroContent(d.introContent ?? '');
       setConclusionContent(d.conclusionContent ?? '');
       if (Array.isArray(d.readAlsoIds)) setReadAlsoIds(d.readAlsoIds);
+      if (Array.isArray(d.relatedProductIds)) setRelatedProductIds(d.relatedProductIds);
     } catch {}
     setDraftNotice(null);
   }
@@ -193,9 +197,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
     if (!slugTouched) setSlug(slugifyClient(value));
   }
 
-  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function uploadThumbnailFile(file: File) {
     setUploading(true); setError('');
     try {
       const formData = new FormData();
@@ -209,9 +211,24 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
     finally { setUploading(false); }
   }
 
-  async function handleImageUrl() {
-    const value = imageUrl.trim();
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadThumbnailFile(file);
+  }
+
+  async function handleImageUrl(valueOverride?: string) {
+    const value = (valueOverride ?? imageUrl).trim();
     if (!value) return;
+    // AI-generated images pasted as base64 data URLs go through the
+    // multipart upload path instead of the JSON link-import path.
+    if (isImageDataUrl(value)) {
+      const file = dataUrlToFile(value, slugifyClient(title) || 'thumbnail');
+      if (!file) { setError('That pasted data is not a valid image.'); return; }
+      await uploadThumbnailFile(file);
+      setImageUrl('');
+      return;
+    }
     setUploading(true); setError('');
     try {
       const res = await fetch('/api/admin/upload-from-url', {
@@ -225,6 +242,25 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
       setImageUrl('');
     } catch { setError('Image import failed. Please try again.'); }
     finally { setUploading(false); }
+  }
+
+  // Drop files OR image URLs / data URLs dragged straight from a web page.
+  const [dragOver, setDragOver] = useState(false);
+  async function handleThumbDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = getDroppedImage(e.dataTransfer);
+    if (!dropped) return;
+    if (dropped.file) await uploadThumbnailFile(dropped.file);
+    else if (dropped.url) {
+      if (isImageDataUrl(dropped.url)) {
+        const file = dataUrlToFile(dropped.url, slugifyClient(title) || 'thumbnail');
+        if (file) await uploadThumbnailFile(file);
+      } else {
+        setImageMode('url');
+        await handleImageUrl(dropped.url);
+      }
+    }
   }
 
   function validate(): string | null {
@@ -272,6 +308,7 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
           introContent: introContent.trim() || undefined,
           conclusionContent: conclusionContent.trim() || undefined,
           readAlsoIds,
+          relatedProductIds: relatedProductIds.length > 0 ? relatedProductIds : undefined,
         }),
       });
       const data = await res.json();
@@ -432,7 +469,12 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
             </div>
           </div>
         ) : (
-          <div className="mt-1.5 space-y-3">
+          <div
+            className="mt-1.5 space-y-3"
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleThumbDrop}
+          >
             <div className="flex gap-2">
               <button type="button" onClick={() => setImageMode('upload')} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${imageMode === 'upload' ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted'}`}>
                 <Upload className="h-3.5 w-3.5" /> Upload File
@@ -442,14 +484,14 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
               </button>
             </div>
             {imageMode === 'upload' ? (
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50">
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className={`flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-sm transition-colors disabled:opacity-50 ${dragOver ? 'border-primary bg-primary/5 text-foreground' : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}>
                 {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-                {uploading ? 'Uploading...' : 'Click to upload or drag image here'}
+                {uploading ? 'Uploading...' : dragOver ? 'Drop image to upload' : 'Click to upload, drag a file, or drop an image from a web page'}
               </button>
             ) : (
               <div className="flex gap-2">
-                <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="flex-1 rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleImageUrl(); } }} />
-                <button type="button" onClick={handleImageUrl} disabled={!imageUrl.trim() || uploading} className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50">
+                <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg or paste AI-generated data URL" className="flex-1 rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleImageUrl(); } }} />
+                <button type="button" onClick={() => handleImageUrl()} disabled={!imageUrl.trim() || uploading} className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                   {uploading ? 'Importing...' : 'Import'}
                 </button>
@@ -482,6 +524,9 @@ export function NewArticleForm({ mainCategories, mode, articleId, initialArticle
 
       {/* Read Also — plain-title links with embedded article URLs */}
       <ReadAlsoPicker articles={allArticles} value={readAlsoIds} onChange={setReadAlsoIds} />
+
+      {/* Related Products — product cards grouped by category on the article page */}
+      <RelatedProductsPicker value={relatedProductIds} onChange={setRelatedProductIds} />
 
       {/* Content — only for standard type */}
       {articleType === 'standard' && (

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { safeRevalidate as revalidatePath } from '@/lib/revalidate';
-import { getAdminProducts, getTopPicks, setTopPicks, type ProductCategory } from '@/lib/products';
+import { getAdminProducts, getTopPicks, setTopPicks, getTopListMeta, setTopListMeta, type ProductCategory } from '@/lib/products';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logAdminActivity } from '@/lib/admin-log';
+
+export const dynamic = 'force-dynamic';
 
 function isValidCategory(v: unknown): v is ProductCategory {
   return v === 'mobile' || v === 'laptop' || v === 'gadget';
@@ -15,42 +18,55 @@ const CATEGORY_TO_SPECS_SLUG: Record<ProductCategory, string> = {
 
 // GET ?category=mobile -> { top: {product, sort_order}[], all: Product[] }
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category');
-  if (!category || !isValidCategory(category)) {
-    return NextResponse.json({ ok: false, error: 'category must be mobile, laptop, or gadget' }, { status: 400 });
+  try {
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    if (!category || !isValidCategory(category)) {
+      return NextResponse.json({ ok: false, error: 'category must be mobile, laptop, or gadget' }, { status: 400 });
+    }
+    const [picks, all, about] = await Promise.all([
+      (async () => {
+        const ids = await getTopPicks(category);
+        if (ids.length === 0) return [];
+        const { data } = await supabaseAdmin.from('products').select('*').in('id', ids.map((x) => x.productId));
+        const map = new Map((data ?? []).map((r: any) => [r.id, r]));
+        return ids.map((p) => {
+          const row = map.get(p.productId);
+          return row ? { sort_order: p.sortOrder, product: row } : null;
+        }).filter(Boolean);
+      })(),
+      getAdminProducts({ category, limit: 100 }),
+      getTopListMeta(category),
+    ]);
+    return NextResponse.json({ ok: true, category, picks, products: all, about: about ?? '' });
+  } catch (err) {
+    console.error('[admin top-picks GET]', err);
+    return NextResponse.json({ ok: false, error: 'Failed to load.' }, { status: 500 });
   }
-  const [picks, all] = await Promise.all([
-    (async () => {
-      const ids = await getTopPicks(category);
-      if (ids.length === 0) return [];
-      const { data } = await supabaseAdmin.from('products').select('*').in('id', ids.map((x) => x.productId));
-      const map = new Map((data ?? []).map((r: any) => [r.id, r]));
-      return ids.map((p) => {
-        const row = map.get(p.productId);
-        return row ? { sort_order: p.sortOrder, product: row } : null;
-      }).filter(Boolean);
-    })(),
-    getAdminProducts({ category, limit: 100 }),
-  ]);
-  return NextResponse.json({ ok: true, category, picks, products: all });
 }
 
-// PUT { category, orderedIds: string[] } -> replace top picks 5 or 10
+// PUT { category, orderedIds: string[], about?: string } -> replace top picks (any count 0..50) + about text
 export async function PUT(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || !isValidCategory(body.category)) {
     return NextResponse.json({ ok: false, error: 'category required' }, { status: 400 });
   }
   const orderedIds: string[] = Array.isArray(body.orderedIds) ? body.orderedIds : Array.isArray(body.productIds) ? body.productIds : [];
-  if (orderedIds.length !== 0 && orderedIds.length !== 5 && orderedIds.length !== 10) {
-    return NextResponse.json({ ok: false, error: 'Select exactly 5 or 10 products (or 0 to clear).' }, { status: 400 });
+  if (orderedIds.length > 50) {
+    return NextResponse.json({ ok: false, error: 'Select at most 50 products (or 0 to clear).' }, { status: 400 });
   }
   const result = await setTopPicks(body.category, orderedIds);
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  // About text is auxiliary: a save failure warns instead of failing the publish.
+  let warning: string | undefined;
+  if (typeof body.about === 'string') {
+    const aboutRes = await setTopListMeta(body.category, body.about);
+    if (!aboutRes.ok) warning = `Picks published, but About text failed to save (${aboutRes.error}). Run the top_list_meta grants SQL in Supabase.`;
+  }
+  void logAdminActivity('update', 'top_picks', null, `${body.category} x ${orderedIds.length}`);
   revalidatePath('/', 'layout');
   revalidatePath('/top', 'layout');
   revalidatePath(`/top/${body.category}`, 'layout');
   revalidatePath(`/specs/${CATEGORY_TO_SPECS_SLUG[body.category as ProductCategory]}`, 'layout');
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, warning });
 }

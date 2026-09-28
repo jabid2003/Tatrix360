@@ -35,7 +35,7 @@ export default async function AdminLayout({
             </span>
             <LogoutButton />
           </div>
-          <nav className="flex flex-wrap gap-1 px-4 pb-3 sm:px-6" aria-label="Admin navigation">
+          <nav className="flex gap-1 overflow-x-auto scrollbar-hide px-4 pb-3 sm:px-6" aria-label="Admin navigation">
             {[
               { href: '/adminmja', label: 'Articles' },
               { href: '/adminmja/posts/new', label: 'New Article' },
@@ -43,7 +43,7 @@ export default async function AdminLayout({
               { href: '/adminmja/top-articles', label: 'Top & Latest' },
               { href: '/adminmja/homepage-featured', label: 'Homepage' },
               { href: '/adminmja/specs', label: 'Specs' },
-              { href: '/adminmja/top-picks', label: 'Select Top’s' },
+              { href: '/adminmja/top-picks', label: 'Select Best Products' },
               { href: '/adminmja/authors', label: 'Authors' },
               { href: '/adminmja/categories', label: 'Categories' },
               { href: '/adminmja/settings', label: 'Settings' },
@@ -51,7 +51,7 @@ export default async function AdminLayout({
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex-shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 {link.label}
               </Link>

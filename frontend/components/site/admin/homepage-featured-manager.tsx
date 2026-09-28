@@ -391,17 +391,17 @@ export function HomepageFeaturedManager({ initialFeatured, articleDetails, allAr
                 </div>
 
                 {!isEditing && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => setPickingIconFor(headingName)} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted" title="Change icon">
+                  <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto scrollbar-hide">
+                    <button onClick={() => setPickingIconFor(headingName)} className="flex-shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted" title="Change icon">
                       <LayoutGrid className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => startEditHeading(headingName)} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted" title="Rename">
+                    <button onClick={() => startEditHeading(headingName)} className="flex-shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted" title="Rename">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     {count < MAX_PER_HEADING && (
                       <button
                         onClick={() => isAdding ? setAddingToHeading(null) : openAddTo(headingName)}
-                        className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                           isAdding ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted'
                         }`}
                       >
@@ -438,12 +438,12 @@ export function HomepageFeaturedManager({ initialFeatured, articleDetails, allAr
                               </p>
                             </div>
                             <button onClick={() => handleToggleVisibility(item.id, item.isVisible)} disabled={loading}
-                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                              className="flex-shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                               title={item.isVisible ? 'Hide' : 'Show'}>
                               {item.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted-foreground/40" />}
                             </button>
                             <button onClick={() => handleRemoveArticle(item.id)} disabled={loading}
-                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50"
+                              className="flex-shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50"
                               title="Remove">
                               <Trash2 className="h-4 w-4" />
                             </button>

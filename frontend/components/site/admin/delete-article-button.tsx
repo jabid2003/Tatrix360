@@ -34,7 +34,7 @@ export function DeleteArticleButton({ articleId, articleTitle }: { articleId: st
       onClick={handleDelete}
       disabled={loading}
       aria-label={`Delete ${articleTitle}`}
-      className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+      className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-destructive/30 px-3 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
     >
       {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
       Delete

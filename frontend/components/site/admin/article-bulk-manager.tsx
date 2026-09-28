@@ -108,7 +108,7 @@ export function ArticleBulkManager({ articles }: { articles: BulkArticleRow[] })
         <button
           type="button"
           onClick={toggleAll}
-          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-pressed={allSelected}
         >
           {allSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
@@ -210,11 +210,11 @@ export function ArticleBulkManager({ articles }: { articles: BulkArticleRow[] })
                 </p>
               </div>
 
-              <div className="flex flex-shrink-0 items-center gap-2">
+              <div className="flex flex-shrink-0 items-center gap-2 overflow-x-auto scrollbar-hide">
                 {article.articleType === 'listicle' && (
                   <Link
                     href={`/adminmja/posts/${article.id}/items`}
-                    className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+                    className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                   >
                     <Package className="h-3.5 w-3.5" />
                     Items
@@ -222,7 +222,7 @@ export function ArticleBulkManager({ articles }: { articles: BulkArticleRow[] })
                 )}
                 <Link
                   href={`/adminmja/posts/${article.id}/edit`}
-                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+                  className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Edit

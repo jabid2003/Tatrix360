@@ -5,16 +5,27 @@ import { formatDate } from '@/lib/utils';
 import { ChevronRight, Check, X, Star } from 'lucide-react';
 import type { Article } from '@/lib/sections';
 import type { ArticleItem } from '@/lib/article-items';
+import type { Product } from '@/lib/products';
 import ArticleActions from '@/components/article-actions';
+import { RelatedProducts } from '@/components/site/related-products';
+
+const SPECS_SLUG: Record<string, string> = {
+  mobile: 'mobiles',
+  laptop: 'laptops',
+  gadget: 'gadgets',
+};
 
 interface Props {
   article: Article;
   category: { slug: string; displayName: string };
   items: ArticleItem[];
   readAlsoArticles?: Article[];
+  relatedProducts?: Product[];
+  /** Live products for items linked via productId (same product, many articles). */
+  linkedProducts?: Record<string, Product>;
 }
 
-export function ListicleArticle({ article, category, items, readAlsoArticles = [] }: Props) {
+export function ListicleArticle({ article, category, items, readAlsoArticles = [], relatedProducts = [], linkedProducts = {} }: Props) {
   const visibleItems = items.filter((i) => i.isVisible).sort((a, b) => a.displayOrder - b.displayOrder);
 
   // Build comparison table columns from all specs keys
@@ -237,6 +248,14 @@ export function ListicleArticle({ article, category, items, readAlsoArticles = [
                       <Star className="h-4 w-4 fill-current" /> {item.rating.toFixed(1)}
                     </span>
                   )}
+                  {item.productId && linkedProducts[item.productId] && (
+                    <a
+                      href={`/specs/${SPECS_SLUG[linkedProducts[item.productId].category] ?? linkedProducts[item.productId].category}/${linkedProducts[item.productId].slug}`}
+                      className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+                    >
+                      View Full Specs <ChevronRight className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                   {item.productUrl && (
                     <a href={item.productUrl} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
                       Buy Now <ChevronRight className="h-3.5 w-3.5" />
@@ -302,6 +321,8 @@ export function ListicleArticle({ article, category, items, readAlsoArticles = [
           ))}
         </div>
       )}
+
+      <RelatedProducts products={relatedProducts} />
     </article>
   );
 }

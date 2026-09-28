@@ -1,4 +1,5 @@
-import { getAdminProducts, getTopPicks } from '@/lib/products';
+import { getAdminProducts } from '@/lib/products';
+import { getMainCategories } from '@/lib/sections';
 import { TopPicksManager } from '@/components/site/admin/top-picks-manager';
 
 export const dynamic = 'force-dynamic';
@@ -11,28 +12,18 @@ export default async function TopPicksPage({
   const raw = searchParams.category;
   const category = (raw === 'laptop' ? 'laptop' : raw === 'gadget' ? 'gadget' : 'mobile') as 'mobile' | 'laptop' | 'gadget';
 
-  const [allProducts, picks] = await Promise.all([
+  const [allProducts, mainCategories] = await Promise.all([
     getAdminProducts({ category, limit: 100 }),
-    getTopPicks(category),
+    getMainCategories(),
   ]);
-
-  // Resolve picked products in order
-  const { supabaseAdmin } = await import('@/lib/supabase-admin');
-  let orderedProducts: any[] = [];
-  if (picks.length > 0) {
-    const ids = picks.map((p) => p.productId);
-    const { data } = await supabaseAdmin.from('products').select('*').in('id', ids);
-    const map = new Map((data ?? []).map((r: any) => [r.id, r]));
-    orderedProducts = picks.map((p) => map.get(p.productId)).filter(Boolean);
-  }
 
   return (
     <main className="container-page py-8 sm:py-12">
       <div className="mb-6">
-        <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">Select Top’s</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Choose category, pick 5 or 10 products, arrange order, and publish together on one Top page.</p>
+        <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">Select Best Products</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Name the list, write its description, pick products in order, and publish — a separate listicle article page is created. The same products can be reused in other lists.</p>
       </div>
-      <TopPicksManager initialCategory={category} initialAll={allProducts} initialPicks={orderedProducts} />
+      <TopPicksManager initialCategory={category} initialAll={allProducts} mainCategories={mainCategories} />
     </main>
   );
 }

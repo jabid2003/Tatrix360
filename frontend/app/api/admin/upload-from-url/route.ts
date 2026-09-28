@@ -42,7 +42,28 @@ async function resolvesToPrivate(host: string): Promise<boolean> {
  * its edge, then stores a fresh copy in our cloud, so the saved URL is always
  * res.cloudinary.com. Private/internal/loopback/link-local hosts are rejected to
  * guard against SSRF.
+ *
+ * Also accepts `data:image/...;base64,...` URLs (e.g. AI-generated images
+ * copied straight from the browser) — decoded and uploaded directly.
  */
+
+// ~4MB decoded (platform request-size limits apply on top of this).
+const MAX_DATA_URL_CHARS = 5_500_000;
+const MAX_DECODED_BYTES = 6 * 1024 * 1024;
+
+function parseImageDataUrl(url: string): { mime: string; buffer: Buffer } | null {
+  const m = url.match(/^data:([^;,]+)?(;base64)?,([\s\S]*)$/);
+  if (!m) return null;
+  const mime = (m[1] || 'application/octet-stream').toLowerCase();
+  if (!mime.startsWith('image/')) return null;
+  try {
+    const buf = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf8');
+    if (buf.length === 0 || buf.length > MAX_DECODED_BYTES) return null;
+    return { mime, buffer: buf };
+  } catch {
+    return null;
+  }
+}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -51,6 +72,31 @@ export async function POST(request: Request) {
 
     if (typeof url !== 'string' || !url.trim()) {
       return NextResponse.json({ ok: false, error: 'No image URL provided.' }, { status: 400 });
+    }
+
+    const publicId = typeof title === 'string' && title.trim() ? sanitizeTitle(title) : `image-${Date.now()}`;
+
+    // AI-generated / copied images often arrive as base64 data URLs.
+    if (url.trim().startsWith('data:')) {
+      if (url.length > MAX_DATA_URL_CHARS) {
+        return NextResponse.json({ ok: false, error: 'Image is too large to import by pasting. Save it as a file and upload it instead.' }, { status: 400 });
+      }
+      const parsed = parseImageDataUrl(url);
+      if (!parsed) {
+        return NextResponse.json({ ok: false, error: 'That pasted data is not a valid image.' }, { status: 400 });
+      }
+      const result = await cloudinary.uploader.upload(`data:${parsed.mime};base64,${parsed.buffer.toString('base64')}`, {
+        folder: 'tatrix360',
+        public_id: publicId,
+        resource_type: 'image',
+        unique_filename: false,
+        overwrite: true,
+      });
+      return NextResponse.json({
+        ok: true,
+        url: result.secure_url,
+        publicId: result.public_id,
+      });
     }
 
     let parsed: URL;
@@ -68,8 +114,6 @@ export async function POST(request: Request) {
     if (await resolvesToPrivate(parsed.hostname)) {
       return NextResponse.json({ ok: false, error: 'That URL is not allowed.' }, { status: 400 });
     }
-
-    const publicId = typeof title === 'string' && title.trim() ? sanitizeTitle(title) : `image-${Date.now()}`;
 
     const result = await cloudinary.uploader.upload(url, {
       folder: 'tatrix360',

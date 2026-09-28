@@ -74,6 +74,7 @@ export async function PATCH(
     introContent: pickRawStr(body, 'introContent', 'intro_content'),
     conclusionContent: pickRawStr(body, 'conclusionContent', 'conclusion_content'),
     readAlsoIds: pickStrArray(body, 'readAlsoIds', 'read_also_ids'),
+    relatedProductIds: pickStrArray(body, 'relatedProductIds', 'related_product_ids'),
   };
 
   const result = await updateArticle(params.id, input);

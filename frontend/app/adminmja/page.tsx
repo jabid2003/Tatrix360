@@ -72,13 +72,13 @@ export default async function AdminDashboardPage({
         </Link>
       </div>
 
-      <nav className="mb-4 flex flex-wrap gap-1.5" aria-label="Article filters">
+      <nav className="mb-4 flex gap-1.5 overflow-x-auto scrollbar-hide pb-1" aria-label="Article filters">
         {FILTERS.map((f) => (
           <Link
             key={f.key}
             href={`/adminmja?filter=${f.key}${q ? `&q=${encodeURIComponent(searchParams.q ?? '')}` : ''}`}
             aria-current={filter === f.key ? 'page' : undefined}
-            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
               filter === f.key
                 ? 'bg-primary text-primary-foreground'
                 : 'border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -92,7 +92,7 @@ export default async function AdminDashboardPage({
       {/* Admin search across titles + slugs */}
       <form method="GET" action="/adminmja" className="mb-6 flex gap-2">
         <input type="hidden" name="filter" value={filter} />
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
@@ -104,14 +104,14 @@ export default async function AdminDashboardPage({
         </div>
         <button
           type="submit"
-          className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:shadow-glow"
+          className="flex-shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:shadow-glow"
         >
           Search
         </button>
         {q && (
           <Link
             href={`/adminmja?filter=${filter}`}
-            className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex-shrink-0 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Clear
           </Link>

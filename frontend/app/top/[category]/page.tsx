@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { getTopProducts } from '@/lib/products';
+import { getTopProducts, getTopListMeta } from '@/lib/products';
 
 export const revalidate = 60;
 
@@ -28,7 +28,10 @@ export async function generateMetadata({ params }: { params: { category: string 
 export default async function TopPage({ params }: { params: { category: string } }) {
   const mapped = MAP[params.category];
   if (!mapped) notFound();
-  const products = await getTopProducts(mapped.cat);
+  const [products, about] = await Promise.all([
+    getTopProducts(mapped.cat),
+    getTopListMeta(mapped.cat),
+  ]);
 
   return (
     <main className="container-page py-8 sm:py-12">
@@ -39,7 +42,10 @@ export default async function TopPage({ params }: { params: { category: string }
 
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">Top {mapped.label}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Curated by editors — {products.length ? `${products.length} products` : 'No picks published yet'}. Each card shows key specs with a link to full specifications.</p>
+        {about ? (
+          <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-foreground/90">{about}</p>
+        ) : null}
+        <p className="mt-1 text-sm text-muted-foreground">Curated by editors — {products.length ? `${products.length} ${products.length === 1 ? 'product' : 'products'}` : 'No picks published yet'}. Each card shows key specs with a link to full specifications.</p>
         <div className="mt-3 flex gap-2">
           <Link href={`/specs/${params.category}`} className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-muted">View All Specs</Link>
         </div>
@@ -47,7 +53,7 @@ export default async function TopPage({ params }: { params: { category: string }
 
       {products.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border px-5 py-16 text-center">
-          <p className="text-muted-foreground">No Top {mapped.label} published yet. Use Select Top’s in admin to choose 5 or 10.</p>
+          <p className="text-muted-foreground">No Top {mapped.label} published yet. Use Select Top’s in admin to choose products.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

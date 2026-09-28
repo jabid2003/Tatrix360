@@ -15,6 +15,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     brand: typeof body.brand === 'string' ? body.brand : undefined,
     priceText: typeof body.priceText === 'string' ? body.priceText : typeof body.price_text === 'string' ? body.price_text : undefined,
     productUrl: typeof body.productUrl === 'string' ? body.productUrl : typeof body.product_url === 'string' ? body.product_url : undefined,
+    productId: body.productId === null || body.product_id === null ? null : typeof body.productId === 'string' ? body.productId : typeof body.product_id === 'string' ? body.product_id : undefined,
     badge: typeof body.badge === 'string' ? body.badge : undefined,
     releaseDate: typeof body.releaseDate === 'string' ? body.releaseDate : typeof body.release_date === 'string' ? body.release_date : undefined,
     rating: body.rating !== undefined ? (body.rating === null ? null as unknown as undefined : Number(body.rating)) : undefined,
